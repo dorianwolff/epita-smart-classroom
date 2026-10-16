@@ -1,5 +1,6 @@
 import { DEFAULTS } from "../config/defaults.js";
 import { AppError } from "../utils/errors.js";
+import { fitWithinMaximum, getIntrinsicSize } from "./source-resolution.js";
 
 function validateFile(file) {
   const validType = DEFAULTS.acceptedImageTypes.includes(file?.type);
@@ -15,18 +16,34 @@ function loadImage(objectUrl) {
   });
 }
 
-export async function createImageSource(file) {
-  validateFile(file);
+async function decodeImage(file) {
+  if (typeof createImageBitmap === "function") {
+    try {
+      return await createImageBitmap(file, { imageOrientation: "from-image" });
+    } catch {
+      // Fall back to the browser image decoder when ImageBitmap is unavailable for this file.
+    }
+  }
   const objectUrl = URL.createObjectURL(file);
   try {
-    const image = await loadImage(objectUrl);
-    const scale = Math.min(1, DEFAULTS.maximumSourceDimension / Math.max(image.naturalWidth, image.naturalHeight));
+    return await loadImage(objectUrl);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+export async function createImageSource(file) {
+  validateFile(file);
+  const image = await decodeImage(file);
+  try {
+    const intrinsic = getIntrinsicSize(image);
+    const fitted = fitWithinMaximum(intrinsic.width, intrinsic.height, DEFAULTS.maximumSourceDimension);
     const canvas = document.createElement("canvas");
-    canvas.width = Math.round(image.naturalWidth * scale);
-    canvas.height = Math.round(image.naturalHeight * scale);
+    canvas.width = fitted.width;
+    canvas.height = fitted.height;
     canvas.getContext("2d", { alpha: false }).drawImage(image, 0, 0, canvas.width, canvas.height);
     return canvas;
   } finally {
-    URL.revokeObjectURL(objectUrl);
+    image.close?.();
   }
 }

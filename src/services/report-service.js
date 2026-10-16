@@ -47,6 +47,9 @@ export function renderReport(container, state) {
   addListBlock(intro, "Contexte de l’audit", [
     `Date et heure : ${formatDateTime(new Date(auditMetadata.completedAt))}`,
     `Méthode d’entrée : ${formatInputMode(auditMetadata.inputMode)}`,
+    `Source analysée : ${auditMetadata.sourceWidth} × ${auditMetadata.sourceHeight} px`,
+    `Modèle : ${auditMetadata.model}`,
+    `Temps d’inférence mesuré : ${auditMetadata.inferenceMilliseconds} ms`,
     `Seuil de confiance : ${Math.round(auditMetadata.confidenceThreshold * 100)} %`,
     `Mode : ${configured ? "Audit configuré" : "Détection libre"}`,
     `Configuration de référence : ${reference}`,
@@ -82,6 +85,9 @@ export function renderReport(container, state) {
 
   addListBlock(container, "Limites de l’analyse", [
     "COCO-SSD est un modèle généraliste : ses classes ne correspondent pas toujours exactement au mobilier scolaire.",
+    "Les bureaux sont approximés par la classe « dining table » et les moniteurs par « tv ».",
+    "Les tableaux et fenêtres ne sont pas pris en charge.",
+    "Les objets petits, éloignés, partiellement masqués ou mal éclairés peuvent ne pas être détectés.",
     "Une quantité inférieure ne prouve pas l’absence d’un équipement.",
     "Les personnes sont supprimées des résultats avant tout affichage ou calcul.",
     "La photographie source est exclue de ce rapport pour protéger la vie privée."

@@ -1,9 +1,14 @@
 export const DEFAULTS = Object.freeze({
-  confidenceThreshold: 0.6,
+  confidenceThreshold: 0.4,
+  minimumConfidenceThreshold: 0.25,
+  maximumConfidenceThreshold: 0.85,
+  confidenceStep: 0.05,
+  thresholdDebounceMilliseconds: 350,
   maximumDetectionBoxes: 100,
-  maximumSourceDimension: 1280,
+  maximumSourceDimension: 1600,
   maximumUploadBytes: 15 * 1024 * 1024,
-  model: Object.freeze({ base: "lite_mobilenet_v2" }),
+  model: Object.freeze({ base: "mobilenet_v2", label: "MobileNet v2 (précis)" }),
+  camera: Object.freeze({ idealWidth: 1920, idealHeight: 1080 }),
   storageKeys: Object.freeze({ preferences: "sallescope.preferences.v2" }),
   acceptedImageTypes: Object.freeze(["image/jpeg", "image/png", "image/webp"])
 });

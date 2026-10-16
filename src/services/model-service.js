@@ -21,7 +21,7 @@ export function createModelService() {
     if (model) return model;
     if (loadPromise) return loadPromise;
     loadPromise = waitForLibrary()
-      .then((cocoSsd) => cocoSsd.load(DEFAULTS.model))
+      .then((cocoSsd) => cocoSsd.load({ base: DEFAULTS.model.base }))
       .then((loadedModel) => { model = loadedModel; return model; })
       .catch((error) => {
         loadPromise = null;

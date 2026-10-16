@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CATEGORIES, EMPTY_EXPECTED, EPITA_EXAMPLE_EXPECTED } from "../src/config/categories.js";
+import { CATEGORIES, CATEGORY_BY_CLASS, EMPTY_EXPECTED, EPITA_EXAMPLE_EXPECTED } from "../src/config/categories.js";
 import { AUDIT_MODE } from "../src/config/defaults.js";
 import { calculateAudit } from "../src/domain/audit-engine.js";
 
@@ -55,4 +55,11 @@ test("changing modes recalculates without changing detections", () => {
 test("separates recognised objects outside classroom mapping", () => {
   const audit = calculate({ detections: [detection("book")], analysed: true });
   assert.deepEqual(audit.otherObjects, [{ className: "book", label: "livre", count: 1 }]);
+});
+
+test("maps the exact COCO class names through the central category configuration", () => {
+  assert.equal(CATEGORY_BY_CLASS.get("chair").id, "chairs");
+  assert.equal(CATEGORY_BY_CLASS.get("dining table").id, "tables");
+  assert.equal(CATEGORY_BY_CLASS.get("laptop").id, "laptops");
+  assert.equal(CATEGORY_BY_CLASS.get("tv").id, "screens");
 });

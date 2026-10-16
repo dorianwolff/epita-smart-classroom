@@ -28,7 +28,7 @@
           <span><strong>SalleScope</strong><small>EPITA Smart Classroom</small></span>
         </a>
         <div class="header-status">
-          <span id="model-status" class="status-pill status-loading" aria-live="polite">Chargement du modèle</span>
+          <span id="model-status" class="status-pill status-loading" aria-live="polite">Chargement du modèle de détection précise…</span>
           <span class="privacy-mini">Analyse locale · aucune image envoyée</span>
         </div>
       </div>
@@ -103,6 +103,7 @@
               <input id="image-upload" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="upload-help">
               <small id="upload-help" class="stage-file-help">JPEG, PNG ou WebP · 15 Mo maximum</small>
             </div>
+            <p id="capture-guidance" class="capture-guidance">Pour de meilleurs résultats, cadrez les équipements de près, évitez le contre-jour et prenez une seconde photo si des objets sont masqués.</p>
             <p id="analysis-status" class="stage-status" aria-live="polite">Initialisation de l’application.</p>
             <p id="visual-caption" class="visual-caption">Le cadrage influence les résultats. Les objets masqués peuvent ne pas être reconnus.</p>
           </div>
@@ -117,8 +118,8 @@
               <summary>Réglages avancés</summary>
               <div class="advanced-settings-body">
                 <div class="range-heading"><label for="confidence">Seuil de confiance</label><output id="confidence-value" for="confidence">60 %</output></div>
-                <input id="confidence" type="range" min="30" max="90" step="5" value="60">
-                <p class="field-help">Un seuil plus élevé réduit les faux positifs, mais peut ignorer certains objets.</p>
+                <input id="confidence" type="range" min="25" max="85" step="5" value="40">
+                <p class="field-help">Un seuil plus bas affiche davantage de détections, mais peut augmenter les faux positifs.</p>
               </div>
             </details>
 
@@ -185,7 +186,12 @@
         <div id="report-content" class="report-sheet"></div>
         <details class="model-limitations">
           <summary>Limites du modèle et interprétation des écarts</summary>
-          <p>Une quantité inférieure peut provenir d’un objet masqué, d’un mauvais cadrage ou d’une limite du modèle. Un contrôle humain reste nécessaire.</p>
+          <ul>
+            <li>Les bureaux sont approximés par la classe « dining table » et les moniteurs par « tv ».</li>
+            <li>Les tableaux et fenêtres ne sont pas pris en charge.</li>
+            <li>Les objets petits, éloignés, partiellement masqués ou mal éclairés peuvent être manqués.</li>
+            <li>Une non-détection ne prouve pas l’absence d’un équipement. Un contrôle humain reste nécessaire.</li>
+          </ul>
         </details>
       </section>
     </main>

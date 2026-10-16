@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { EPITA_EXAMPLE_EXPECTED } from "../src/config/categories.js";
 import { ANALYSIS_STATUS, AUDIT_MODE, INPUT_MODE, MODEL_STATUS } from "../src/config/defaults.js";
-import { createAnalysisCoordinator } from "../src/services/analysis-coordinator.js";
+import { createAnalysisCoordinator, createThresholdReanalysis } from "../src/services/analysis-coordinator.js";
 import { createStore } from "../src/state/store.js";
 import { renderAnalysisStatus } from "../src/ui/application-view.js";
 
@@ -95,4 +95,14 @@ test("a queued photo announces automatic analysis while the model loads", () => 
     hasVisualSource: true
   });
   assert.equal(element.textContent, "Photo prête. L’analyse démarrera automatiquement.");
+});
+
+test("threshold changes trigger one controlled reanalysis after debouncing", async () => {
+  let retries = 0;
+  const reanalysis = createThresholdReanalysis(() => { retries += 1; }, 10);
+  reanalysis.schedule();
+  reanalysis.schedule();
+  reanalysis.schedule();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  assert.equal(retries, 1);
 });

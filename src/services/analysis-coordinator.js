@@ -1,4 +1,22 @@
-import { ANALYSIS_STATUS, MODEL_STATUS } from "../config/defaults.js";
+import { ANALYSIS_STATUS, DEFAULTS, MODEL_STATUS } from "../config/defaults.js";
+import { getIntrinsicSize } from "./source-resolution.js";
+
+export function createThresholdReanalysis(retry, delayMilliseconds) {
+  let timeoutId = null;
+  return {
+    schedule() {
+      if (timeoutId !== null) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        timeoutId = null;
+        retry();
+      }, delayMilliseconds);
+    },
+    cancel() {
+      if (timeoutId !== null) clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  };
+}
 
 export function createAnalysisCoordinator({ store, modelService, onComplete, onError }) {
   let currentSource = null;
@@ -12,14 +30,20 @@ export function createAnalysisCoordinator({ store, modelService, onComplete, onE
     const revision = state.sourceRevision;
     const source = currentSource;
     const threshold = state.confidenceThreshold;
+    const sourceSize = getIntrinsicSize(source);
     if (!store.startAnalysis(revision)) return null;
+    const startedAt = performance.now();
 
     activePromise = modelService.detect(source, threshold)
       .then((detections) => {
         const metadata = {
           completedAt: new Date().toISOString(),
           inputMode: store.getState().inputMode,
-          confidenceThreshold: threshold
+          confidenceThreshold: threshold,
+          sourceWidth: sourceSize.width,
+          sourceHeight: sourceSize.height,
+          inferenceMilliseconds: Math.round(performance.now() - startedAt),
+          model: DEFAULTS.model.label
         };
         if (store.completeAnalysis(revision, detections, metadata)) onComplete({ source, detections });
       })

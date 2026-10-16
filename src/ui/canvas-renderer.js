@@ -1,13 +1,7 @@
 import { CATEGORY_BY_CLASS } from "../config/categories.js";
 import { getCocoLabel } from "../config/coco-labels.js";
+import { getIntrinsicSize } from "../services/source-resolution.js";
 import { formatPercent } from "../utils/formatting.js";
-
-function getSourceSize(source) {
-  return {
-    width: source.videoWidth || source.naturalWidth || source.width,
-    height: source.videoHeight || source.naturalHeight || source.height
-  };
-}
 
 function getLabel(detection) {
   const category = CATEGORY_BY_CLASS.get(detection.className);
@@ -35,7 +29,7 @@ function drawDetection(context, detection, canvasWidth) {
 }
 
 export function renderCanvas(canvas, source, detections = []) {
-  const { width, height } = getSourceSize(source);
+  const { width, height } = getIntrinsicSize(source);
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d", { alpha: false });

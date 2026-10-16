@@ -7,7 +7,7 @@ import { renderResults } from "./results-view.js";
 
 function renderModelStatus(element, status) {
   const content = {
-    loading: ["Chargement du modèle", "status-loading"],
+    loading: ["Chargement du modèle de détection précise…", "status-loading"],
     ready: ["Modèle prêt", "status-ready"],
     error: ["Modèle indisponible", "status-error"]
   }[status];
@@ -54,6 +54,7 @@ export function renderApplicationState(elements, state) {
   elements.stop_camera.disabled = !activeCamera;
   elements.stop_camera.hidden = !activeCamera;
   elements.stage_upload_label.textContent = state.hasVisualSource ? "Choisir une autre image" : "Importer une image";
+  elements.capture_guidance.hidden = state.analysed;
   elements.analyse_upload.disabled = state.modelStatus !== MODEL_STATUS.READY || !state.hasVisualSource || activeCamera || running;
   elements.print_report.disabled = !state.analysed;
   elements.configuration_section.hidden = state.auditMode !== AUDIT_MODE.CONFIGURED;

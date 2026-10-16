@@ -17,7 +17,7 @@ export const ERROR_MESSAGES = Object.freeze({
   CAMERA_BUSY: ["Caméra indisponible", "La caméra est peut-être utilisée par une autre application. Fermez-la, puis réessayez."],
   INVALID_FILE: ["Fichier non valide", "Choisissez une image JPEG, PNG ou WebP de moins de 15 Mo."],
   IMAGE_LOAD: ["Image illisible", "Cette image n’a pas pu être chargée. Essayez un autre fichier."],
-  NO_SUPPORTED_OBJECTS: ["Aucun équipement pris en charge", "Aucun équipement vérifiable n’a été reconnu. Essayez un autre cadrage ou réduisez le seuil."],
+  NO_SAFE_OBJECTS: ["Aucun objet reconnu", "Aucun objet sûr n’a été reconnu. Rapprochez-vous, améliorez la lumière ou prenez une seconde photo."],
   UNEXPECTED: ["Erreur inattendue", "Une erreur est survenue. Réinitialisez l’audit puis réessayez."]
 });
 

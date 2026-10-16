@@ -1,5 +1,6 @@
 import { DEFAULTS } from "../config/defaults.js";
 import { AppError } from "../utils/errors.js";
+import { fitWithinMaximum } from "./source-resolution.js";
 
 function mapCameraError(error) {
   if (["NotAllowedError", "SecurityError"].includes(error.name)) return "CAMERA_DENIED";
@@ -17,7 +18,11 @@ export function createCameraService() {
     stop(videoElement);
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: DEFAULTS.camera.idealWidth },
+          height: { ideal: DEFAULTS.camera.idealHeight }
+        },
         audio: false
       });
       videoElement.srcObject = stream;
@@ -30,10 +35,10 @@ export function createCameraService() {
 
   function capture(videoElement) {
     if (!stream || !videoElement.videoWidth) throw new AppError("CAMERA_NOT_FOUND");
-    const scale = Math.min(1, DEFAULTS.maximumSourceDimension / Math.max(videoElement.videoWidth, videoElement.videoHeight));
+    const fitted = fitWithinMaximum(videoElement.videoWidth, videoElement.videoHeight, DEFAULTS.maximumSourceDimension);
     const canvas = document.createElement("canvas");
-    canvas.width = Math.round(videoElement.videoWidth * scale);
-    canvas.height = Math.round(videoElement.videoHeight * scale);
+    canvas.width = fitted.width;
+    canvas.height = fitted.height;
     canvas.getContext("2d", { alpha: false }).drawImage(videoElement, 0, 0, canvas.width, canvas.height);
     return canvas;
   }

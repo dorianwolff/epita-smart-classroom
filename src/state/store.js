@@ -14,7 +14,9 @@ function loadPreferences() {
     const threshold = Number(saved.confidenceThreshold);
     return {
       expectedConfiguration: sanitizeExpected(saved.expectedConfiguration),
-      confidenceThreshold: threshold >= 0.3 && threshold <= 0.9 ? threshold : DEFAULTS.confidenceThreshold
+      confidenceThreshold: threshold >= DEFAULTS.minimumConfidenceThreshold && threshold <= DEFAULTS.maximumConfidenceThreshold
+        ? threshold
+        : DEFAULTS.confidenceThreshold
     };
   } catch {
     return { expectedConfiguration: { ...EMPTY_EXPECTED }, confidenceThreshold: DEFAULTS.confidenceThreshold };

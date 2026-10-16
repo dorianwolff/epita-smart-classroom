@@ -1,7 +1,7 @@
-import { CATEGORIES, CATEGORY_BY_CLASS } from "../config/categories.js";
-import { INPUT_MODE, MODEL_STATUS } from "../config/defaults.js";
+import { CATEGORIES } from "../config/categories.js";
+import { DEFAULTS, INPUT_MODE, MODEL_STATUS } from "../config/defaults.js";
 import { calculateAudit } from "../domain/audit-engine.js";
-import { createAnalysisCoordinator } from "../services/analysis-coordinator.js";
+import { createAnalysisCoordinator, createThresholdReanalysis } from "../services/analysis-coordinator.js";
 import { createImageSource } from "../services/image-service.js";
 import { printReport } from "../services/report-service.js";
 import { getElement } from "../utils/dom.js";
@@ -23,13 +23,17 @@ export class UiController {
       onComplete: (result) => this.handleAnalysisComplete(result),
       onError: (error) => this.handleAnalysisError(error)
     });
+    this.thresholdReanalysis = createThresholdReanalysis(
+      () => this.analysis.retry(),
+      DEFAULTS.thresholdDebounceMilliseconds
+    );
   }
 
   getElements() {
     const ids = ["model-status", "camera-preview", "detection-canvas", "empty-visual", "analysis-overlay",
       "start-camera", "retake-photo", "capture", "stop-camera", "stage-upload-label", "image-upload", "hero-upload", "analyse-upload",
       "reset-audit", "confidence", "confidence-value", "app-error", "error-title", "error-message",
-      "error-action", "analysis-status", "configuration-section", "configuration-label", "configuration-grid",
+      "error-action", "analysis-status", "capture-guidance", "configuration-section", "configuration-label", "configuration-grid",
       "load-example", "reset-configuration", "detection-results", "results-summary", "dashboard",
       "global-status", "audit-rows", "report-content", "print-report"];
     return Object.fromEntries(ids.map((id) => [id.replaceAll("-", "_"), getElement(`#${id}`)]));
@@ -38,6 +42,9 @@ export class UiController {
   start() {
     this.bindEvents();
     const state = this.store.getState();
+    this.elements.confidence.min = String(DEFAULTS.minimumConfidenceThreshold * 100);
+    this.elements.confidence.max = String(DEFAULTS.maximumConfidenceThreshold * 100);
+    this.elements.confidence.step = String(DEFAULTS.confidenceStep * 100);
     this.elements.confidence.value = String(state.confidenceThreshold * 100);
     this.elements.confidence_value.textContent = `${Math.round(state.confidenceThreshold * 100)} %`;
     renderConfiguration(this.elements.configuration_grid, CATEGORIES, state.expectedConfiguration, (id, value) => {
@@ -100,6 +107,7 @@ export class UiController {
   }
 
   async startCamera() {
+    this.thresholdReanalysis.cancel();
     try {
       await this.cameraService.start(this.elements.camera_preview);
       this.elements.camera_preview.hidden = false;
@@ -131,6 +139,7 @@ export class UiController {
   }
 
   queueSource(source, inputMode) {
+    this.thresholdReanalysis.cancel();
     renderCanvas(this.elements.detection_canvas, source);
     this.showCanvas();
     this.analysis.setSource(source, inputMode);
@@ -140,8 +149,8 @@ export class UiController {
   handleAnalysisComplete({ source, detections }) {
     this.recalculateAudit();
     renderCanvas(this.elements.detection_canvas, source, detections);
-    if (!detections.some((detection) => CATEGORY_BY_CLASS.has(detection.className))) {
-      this.showError(new AppError("NO_SUPPORTED_OBJECTS"));
+    if (!detections.length) {
+      this.showError(new AppError("NO_SAFE_OBJECTS"));
     }
   }
 
@@ -153,7 +162,10 @@ export class UiController {
     const threshold = Number(event.target.value) / 100;
     this.store.setThreshold(threshold);
     this.elements.confidence_value.textContent = `${Math.round(threshold * 100)} %`;
-    if (this.analysis.hasSource()) this.elements.analysis_status.textContent = "Seuil modifié. Relancez l’analyse pour actualiser les détections.";
+    if (this.analysis.hasSource() && this.store.getState().cameraStatus !== "active") {
+      this.elements.analysis_status.textContent = "Seuil modifié. Nouvelle analyse dans un instant…";
+      this.thresholdReanalysis.schedule();
+    }
   }
 
   changeAuditMode(auditMode) {
@@ -185,6 +197,7 @@ export class UiController {
 
   reset() {
     this.sourceIntent += 1;
+    this.thresholdReanalysis.cancel();
     this.cameraService.stop(this.elements.camera_preview);
     this.analysis.reset();
     this.elements.image_upload.value = "";

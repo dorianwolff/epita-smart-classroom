@@ -59,6 +59,16 @@
 .stage-controls .file-button { flex: 1 1 190px; }
 .stage-file-help { flex: 1 0 100%; color: var(--color-text-muted); }
 
+.capture-guidance {
+  margin: var(--space-3) 0 0;
+  padding: 0.8rem 0.9rem;
+  color: var(--color-text-muted);
+  background: #f7f9fc;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+}
+
 .stage-status {
   margin: var(--space-3) 0 0;
   padding: 0.75rem 0.9rem;
@@ -83,4 +93,4 @@
 }
 
 .model-limitations summary { color: var(--color-navy); font-weight: 800; cursor: pointer; }
-.model-limitations p { margin: var(--space-2) 0 0; }
+.model-limitations p, .model-limitations ul { margin: var(--space-2) 0 0; }

@@ -22,7 +22,7 @@ Reconnaissance ou suivi des personnes, vidéo continue, identification biométri
 
 ## Architecture
 
-`main.js` assemble le store, les services et le contrôleur UI. `categories.js` porte toutes les règles de catégorie et l’exemple EPITA. `model-service.js` est la frontière de confidentialité et retourne exclusivement des prédictions sûres. `analysis-coordinator.js` sérialise l’inférence, invalide les sources obsolètes et conserve la source éphémère hors du store. `audit-engine.js` est une fonction pure ; toutes les représentations consomment son résultat canonique. Les vues ne réalisent aucun calcul métier.
+`main.js` assemble le store, les services et le contrôleur UI. `categories.js` porte toutes les règles de catégorie et l’exemple EPITA. `model-service.js` est la frontière de confidentialité et retourne toutes les prédictions sûres, mappées ou non. `source-resolution.js` centralise les dimensions intrinsèques et le redimensionnement sans agrandissement. `analysis-coordinator.js` sérialise l’inférence, invalide les sources obsolètes, temporise les changements de seuil et conserve la source éphémère hors du store. `audit-engine.js` est une fonction pure ; toutes les représentations consomment son résultat canonique. Les vues ne réalisent aucun calcul métier.
 
 Le traitement suit ce flux : source éphémère → file locale révisée → disponibilité du modèle → inférence locale → suppression immédiate de `person` → état sûr → moteur de détection libre ou d’audit configuré → vues et rapport. `localStorage` ne reçoit que les préférences numériques.
 
@@ -44,6 +44,7 @@ Le traitement suit ce flux : source éphémère → file locale révisée → di
 | B12 | Déploiement et recette caméra sur Cloudflare Pages | P0 | À faire |
 | B13 | Modes Détection libre / Audit configuré | P0 | Terminé |
 | B14 | Capture indépendante et file d’analyse sûre | P0 | Terminé |
+| B15 | Diagnostic qualité, modèle précis et réanalyse temporisée | P0 | Terminé |
 
 ## KPI
 
@@ -64,15 +65,71 @@ Aucune valeur de performance ou de précision n’est fabriquée avant l’exéc
 | 4 | Permission caméra refusée | Erreur française et alternative d’import | À tester manuellement |
 | 5 | Aucune caméra | Erreur dédiée et alternative d’import | À tester sur appareil adapté |
 | 6 | Échec de chargement du modèle | Photo conservée, statut indisponible et nouvelle tentative | Réussi le 16/10/2026 : requête modèle interrompue, aperçu conservé, retry puis analyse automatique |
-| 7 | Modification du seuil | Nouvelle analyse avec seuil courant et résultats mis à jour | Réussi le 16/10/2026 : réanalyse à 70 % et seuil mis à jour dans le rapport |
+| 7 | Modification du seuil | Une seule nouvelle analyse temporisée avec le seuil courant | Réussi le 16/10/2026 : passage de 40 à 25 %, message transitoire, nouvelle analyse automatique et rapport actualisé |
 | 8 | Modification de la configuration | Modes et référence recalculés sans inférence | Réussi le 16/10/2026 : libre sans écarts, configuré vide insuffisant, exemple EPITA chargé puis réinitialisé |
-| 9 | Personne visible | Aucune boîte, quantité, ligne, trace brute ou entrée rapport `person` | Réussi le 16/10/2026 : 5 prédictions brutes de personne dans la fixture, 0 résultat UI/rapport ; test unitaire réussi |
+| 9 | Personne visible | Aucune boîte, quantité, ligne, trace brute ou entrée rapport `person` | Réussi le 16/10/2026 : personnes visibles dans la fixture, 0 résultat UI/rapport ; test unitaire réussi |
 | 10 | Mobile 375 px | Une colonne, actions 48 px, cartes de comparaison, aucun débordement | Réussi le 16/10/2026 : largeur de document 375 px, action principale 50,625 px |
 | 11 | Tablette 768 px | Mise en page lisible et sans débordement | Réussi le 16/10/2026 : largeur de document 768 px et colonne de 736 px |
 | 12 | Bureau 1440 px | Zone d’analyse équilibrée sur deux colonnes | Réussi le 16/10/2026 : largeur 1440 px, colonnes 774,891 px / 373,109 px |
 | 13 | Impression / PDF | Rapport A4 lisible sans photo ni contrôles | Réussi le 16/10/2026 : PDF A4 généré, 2 pages, contrôles masqués, inspection visuelle effectuée |
 | 14 | URL Cloudflare Pages | Site accessible, dépendances et modèle chargés | À renseigner après déploiement |
 | 15 | Caméra sur URL HTTPS | Permission, capture, arrêt des pistes | À tester après déploiement |
+
+## Diagnostic de la chaîne de détection — 16/10/2026
+
+### Configuration constatée avant correction
+
+| Point vérifié | Constat |
+|---|---|
+| Modèle | `lite_mobilenet_v2`, variante la plus petite et la plus rapide |
+| Seuil réel | 0,60 par défaut, éventuellement remplacé par la préférence locale |
+| Boîtes maximales | 100 |
+| Source d’inférence | Canvas source dédié, jamais la vignette CSS |
+| Import | Proportions conservées, grand côté réduit à 1280 px, aucune mise à l’échelle vers le haut |
+| Caméra | Capture depuis `videoWidth` / `videoHeight`, puis grand côté limité à 1280 px |
+| Filtrage de confidentialité | `person` supprimé avant la construction des données sûres |
+| Classes sûres non mappées | Conservées par le modèle et présentées sous « Autres objets détectés » |
+| Mapping | Exact : `chair`, `dining table`, `laptop`, `tv` depuis `categories.js` |
+| Boîtes | Coordonnées d’inférence conservées ; seule la présentation CSS redimensionne le canvas complet |
+| Changement de seuil | Préférence mise à jour, mais aucune nouvelle inférence automatique |
+
+Les causes principales étaient donc le couple modèle rapide / seuil élevé et l’absence de réanalyse automatique. La source n’était pas une petite vignette et le mapping d’audit ne supprimait pas les classes sûres. L’ancien message d’erreur « aucun équipement pris en charge » pouvait toutefois masquer visuellement la valeur d’objets sûrs non mappés ; il n’est désormais affiché que lorsqu’aucun objet sûr n’est retourné.
+
+### Configuration après correction
+
+| Paramètre | Après |
+|---|---|
+| Modèle | `mobilenet_v2` unique, chargé seul |
+| Libellé de chargement | « Chargement du modèle de détection précise… » |
+| Seuil | 0,40 par défaut ; plage 0,25–0,85 ; pas de 0,05 |
+| Réanalyse | Temporisation de 350 ms, file sérialisée, source courante conservée |
+| Import | Orientation fournie par le navigateur, grand côté limité à 1600 px |
+| Caméra | 1920 × 1080 idéal, environnement, sans audio ; capture intrinsèque limitée à 1600 px |
+| Rapport | Modèle, résolution de la source et temps d’inférence mesuré |
+
+### Mesures sur fixtures autorisées
+
+Mesures réalisées dans Chrome headless local avec `mobilenet_v2`, 100 boîtes maximum et seuil 0,40. Les scores ci-dessous proviennent d’un passage isolé ; une répétition de bout en bout a compté 10 chaises au lieu de 9 sur la salle, ce qui confirme qu’un inventaire humain reste nécessaire.
+
+| Fixture | Source analysée | Temps | Classes sûres ≥ 0,40 et scores | Catégories d’audit | Objet attendu manqué |
+|---|---:|---:|---|---|---|
+| Salle existante avec chaises et tables | 1600 × 1200 | 1782 ms | `chair` : 97,4 %, 73,2 %, 68,4 %, 64,8 %, 58,2 %, 50,4 %, 45,0 %, 42,7 %, 41,5 % | Chaises | Toutes les tables à 40 % ; une seule `dining table` à 25,1 % avec seuil 0,25 |
+| Portable proche, CC0 | 1600 × 1180 | 1585 ms | `laptop` 99,2 %, `potted plant` 95,0 %, `tv` 94,3 %, `vase` 46,3 % | Portable, écran ; plante et vase dans les autres objets | Aucun portable manqué ; `tv` reste une approximation contextuelle |
+| Moniteur proche, domaine public | 1108 × 1220 | 1570 ms | `tv` 95,5 % | Écran | Aucun moniteur manqué sur cette vue |
+| Salle avec personnes | 1280 × 851 | 1565 ms | `dining table` 41,9 % ; aucune classe `person` dans la sortie sûre | Table | Chaises visibles manquées ; la table est un faux positif possible à contrôler |
+
+Sources externes de recette, non intégrées au dépôt : [portable CC0](https://commons.wikimedia.org/wiki/File:Laptop_on_a_desk.jpg) et [moniteur domaine public](https://commons.wikimedia.org/wiki/File:Computer_monitor.jpg). Les deux fixtures existantes restent temporaires et ne sont pas enregistrées par l’application.
+
+À 0,25 sur la salle, 14 chaises et une `dining table` ont été affichées, contre 9 à 10 chaises et aucune table à 0,40. Ce gain de rappel s’accompagne de propositions plus fragiles. À 0,60, seules 4 chaises restaient visibles. Le seuil ne modifie pas l’exactitude intrinsèque du modèle.
+
+### Arbitrage vitesse / qualité
+
+| Modèle et source | Chargement | Inférence moyenne, 4 fixtures | Résultat qualitatif à 0,40 |
+|---|---:|---:|---|
+| `lite_mobilenet_v2`, cap 1280 | 1992 ms | 908 ms | 7 chaises sur la salle ; portable et moniteur trouvés ; aucune table de salle |
+| `mobilenet_v2`, cap 1600 | 6433 ms | 1626 ms | 9 à 10 chaises ; scores portable/moniteur renforcés ; aucune table de salle fiable |
+
+Le modèle précis charge environ 3,2 fois plus lentement et infère environ 1,8 fois plus lentement sur cette machine. Il améliore certains scores et le rappel des chaises, mais ne corrige pas les limites de classe ou de cadrage de COCO-SSD. Un sélecteur de modèle n’a pas été ajouté afin de garder une seule configuration compréhensible et de ne jamais charger deux modèles simultanément.
 
 Pour le scénario 9, inspecter l’interface, le rapport, la console et l’état exposé au débogueur : aucune détection `person` ne doit apparaître. Le test automatisé `tests/model-privacy.test.mjs` vérifie la sortie de la frontière modèle avec une prédiction `person` simulée ; il ne remplace pas la recette visuelle réelle.
 
@@ -85,7 +142,7 @@ Pour le scénario 9, inspecter l’interface, le rapport, la console et l’éta
 | Modèle/CDN indisponible | Analyse impossible au premier chargement | Erreur actionnable et nouvelle tentative ; possibilité future d’héberger les fichiers statiques localement |
 | Permission ou caméra indisponible | Capture impossible | Import d’image toujours proposé |
 | Présence de personnes | Risque vie privée | Filtrage immédiat avant tout retour, état ou journalisation |
-| Gros fichier / mémoire mobile | Ralentissement | Limite 15 Mo et dimension maximale 1280 px |
+| Gros fichier / mémoire mobile | Ralentissement | Limite 15 Mo et dimension maximale 1600 px |
 | Mauvaise conclusion opérationnelle | Décision erronée | Statuts « à contrôler », rapport de limites et validation manuelle |
 | Incompatibilité navigateur | Fonction indisponible | Détection de capacité, erreurs françaises, tests multi-navigateurs |
 
@@ -97,7 +154,7 @@ Les prédictions brutes restent dans la fonction d’inférence. Le filtre `pred
 
 ## Limites du modèle
 
-COCO-SSD ne vérifie ni tableaux ni fenêtres. Ses classes `dining table` et `tv` ne sont que des approximations. Les scores ne sont pas des garanties ; perspective, lumière, résolution et masquage modifient les résultats. Une quantité inférieure ne signifie pas « absent ».
+COCO-SSD ne vérifie ni tableaux ni fenêtres. Ses classes `dining table` et `tv` ne sont que des approximations. Les objets petits, éloignés, partiellement masqués ou mal éclairés peuvent être manqués. Les scores ne sont pas des garanties ; perspective, lumière, résolution, seuil et masquage modifient les résultats. Une non-détection ne signifie pas « absent ».
 
 ## Déploiement
 
