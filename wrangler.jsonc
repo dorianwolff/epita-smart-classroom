@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sallescope",
+  "compatibility_date": "2026-10-16",
+  "pages_build_output_dir": ".",
+  "d1_databases": [
+    {
+      "binding": "SALLE_SCOPE_DB",
+      "database_name": "sallescope-audits",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "AUDIT_RETENTION_DAYS": "90"
+  }
+}

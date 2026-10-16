@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="description" content="SalleScope analyse localement les équipements visibles et les événements sonores d'une salle de cours.">
-    <meta name="theme-color" content="#0b1f3a">
-    <title>SalleScope — EPITA Smart Classroom</title>
+    <meta name="description" content="SalleScope audite localement les équipements visibles et l’ambiance sonore d’une salle.">
+    <meta name="theme-color" content="#071426">
+    <title>SalleScope — Audit local de salle</title>
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="stylesheet" href="./styles/tokens.css">
@@ -14,230 +14,75 @@
     <link rel="stylesheet" href="./styles/components.css">
     <link rel="stylesheet" href="./styles/capture.css">
     <link rel="stylesheet" href="./styles/responsive.css">
+    <link rel="stylesheet" href="./styles/workflow.css">
+    <link rel="stylesheet" href="./styles/camera-workspace.css">
     <link rel="stylesheet" href="./styles/print.css" media="print">
     <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
     <script type="module" src="./src/main.js"></script>
   </head>
-  <body>
-    <a class="skip-link" href="#audit-workspace">Aller à l’audit</a>
-    <header class="site-header">
-      <div class="shell header-inner">
-        <a class="brand" href="#top" aria-label="SalleScope, accueil">
-          <span class="brand-mark" aria-hidden="true">S</span>
-          <span><strong>SalleScope</strong><small>EPITA Smart Classroom</small></span>
-        </a>
-        <div class="header-status">
-          <span id="model-status" class="status-pill status-loading" aria-live="polite">Chargement du modèle local…</span>
-          <span class="privacy-mini">Image et son traités localement</span>
-        </div>
+  <body data-screen="capture">
+    <a class="skip-link" href="#capture-screen">Aller au contenu</a>
+    <header class="app-bar">
+      <a class="brand" href="#capture" data-navigate="capture" aria-label="SalleScope, capture">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <span><strong>SalleScope</strong><small>Audit local et confidentiel</small></span>
+      </a>
+      <div class="app-bar-actions">
+        <span id="model-status" class="status-pill status-loading" aria-live="polite">Chargement du modèle…</span>
+        <button id="open-settings" class="icon-button" type="button" aria-label="Ouvrir les réglages">⚙</button>
       </div>
     </header>
 
-    <main id="top">
-      <section class="hero shell" aria-labelledby="hero-title">
-        <div class="hero-copy">
-          <p class="eyebrow">Audit multimodal · local · confidentiel</p>
-          <h1 id="hero-title">Votre salle est-elle prête&nbsp;?</h1>
-          <p class="hero-description">Analysez une image ou écoutez brièvement l’ambiance. SalleScope repère localement les équipements visibles et des catégories sonores, sans identifier les personnes.</p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="#audit-workspace">Démarrer un audit</a>
-            <button class="button button-secondary" id="hero-upload" type="button">Utiliser une image de test</button>
-          </div>
+    <ol class="step-indicator" aria-label="Progression de l’audit">
+      <li data-step="capture" class="is-active"><span>1</span>Capture</li>
+      <li data-step="analysis"><span>2</span>Analyse</li>
+      <li data-step="results"><span>3</span>Résultats</li>
+      <li data-step="report"><span>4</span>Rapport</li>
+    </ol>
+
+    <main class="app-main">
+      <section id="capture-screen" class="workflow-screen" data-workflow-screen="capture" aria-labelledby="capture-title">
+        <div class="screen-heading"><p class="eyebrow">Étape 1 · Capturer</p><h1 id="capture-title" tabindex="-1">Cadrez la salle</h1><p>La caméra s’ouvre en plein écran. Les conseils en direct restent indicatifs ; seule la photo figée alimente l’audit final.</p></div>
+        <div class="capture-choice-grid">
+          <article class="primary-capture-card">
+            <div class="capture-card-icon" aria-hidden="true">⌗</div><h2>Nouvelle image</h2><p>Utilisez la caméra arrière ou importez une image JPEG, PNG ou WebP de 15 Mo maximum.</p>
+            <div class="capture-actions"><button id="open-camera" class="button button-primary button-large" type="button">Ouvrir la caméra</button><label class="button button-secondary button-large" for="image-upload">Importer une image</label><input id="image-upload" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp"></div>
+            <p class="privacy-notice">Images, trames vidéo et modèles restent sur cet appareil. Les personnes sont supprimées avant l’état et l’affichage.</p>
+          </article>
+          <aside class="capture-side-card"><p class="eyebrow">Référence</p><h2>Équipements attendus</h2><p>Le mode libre ne fabrique aucune absence. Activez un audit configuré dans les réglages pour comparer des quantités.</p><button class="button button-ghost" type="button" data-open-settings>Configurer l’audit</button></aside>
         </div>
-        <aside class="privacy-card" aria-label="Engagement de confidentialité">
-          <span class="privacy-icon" aria-hidden="true">✓</span>
-          <div>
-            <strong>Vos données restent sur cet appareil</strong>
-            <p>Images et échantillons sonores sont traités dans votre navigateur, sans enregistrement. Aucune transcription ni identification vocale n’est réalisée.</p>
-          </div>
-        </aside>
-      </section>
-
-      <nav class="workflow shell" aria-label="Étapes de l’audit">
-        <ol>
-          <li class="is-active"><span>1</span>Choisir</li>
-          <li><span>2</span>Capturer</li>
-          <li><span>3</span>Examiner</li>
-          <li><span>4</span>Rapport</li>
-        </ol>
-      </nav>
-
-      <section id="audit-workspace" class="section shell" aria-labelledby="analysis-title">
-        <div class="section-heading analysis-intro">
-          <div><p class="eyebrow">01 · Préparer et analyser</p><h2 id="analysis-title">Image de la salle</h2></div>
-          <p>Cadrez autant d’équipements que possible, sans chercher à identifier les personnes.</p>
-        </div>
-
-        <div class="workflow-switch" role="tablist" aria-label="Mode d’analyse">
-          <button id="workflow-visual" class="workflow-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="visual-workflow">Analyse visuelle</button>
-          <button id="workflow-audio" class="workflow-tab" type="button" role="tab" aria-selected="false" aria-controls="sound-workflow">Analyse sonore</button>
-        </div>
-
-        <div id="visual-workflow" role="tabpanel" aria-labelledby="workflow-visual">
-        <fieldset id="audit-mode" class="mode-selector">
-          <legend>Type d’analyse</legend>
-          <label><input type="radio" name="audit-mode" value="free" checked><span><strong>Détection libre</strong><small>Compter les objets visibles sans référence théorique.</small></span></label>
-          <label><input type="radio" name="audit-mode" value="configured"><span><strong>Audit configuré</strong><small>Comparer les détections à des quantités attendues.</small></span></label>
-        </fieldset>
-
-        <div class="analysis-grid">
-          <div class="visual-panel">
-            <div id="visual-stage" class="visual-stage is-empty">
-              <video id="camera-preview" playsinline muted hidden aria-label="Aperçu de la caméra"></video>
-              <canvas id="detection-canvas" hidden>Visualisation de l’image analysée et des objets détectés.</canvas>
-              <canvas id="detection-overlay" class="detection-overlay" hidden aria-hidden="true"></canvas>
-              <div id="empty-visual" class="empty-visual">
-                <span class="empty-icon" aria-hidden="true">⌗</span>
-                <strong>Aucune image sélectionnée</strong>
-                <p>Démarrez la caméra ou importez une image autorisée.</p>
-              </div>
-              <div id="analysis-overlay" class="analysis-overlay" hidden>
-                <span class="spinner" aria-hidden="true"></span>
-                <strong>Analyse en cours…</strong>
-                <small>Les calculs restent dans ce navigateur.</small>
-              </div>
-              <button id="capture" class="capture-button" type="button" disabled hidden title="Prendre la photo" aria-label="Prendre la photo">
-                <span aria-hidden="true"></span>
-              </button>
-            </div>
-
-            <div class="stage-controls" aria-label="Commandes de la source visuelle">
-              <button id="start-camera" class="button button-primary stage-primary" type="button">Démarrer la caméra</button>
-              <button id="retake-photo" class="button button-primary stage-primary" type="button" hidden>Reprendre</button>
-              <button id="stop-camera" class="button button-ghost" type="button" disabled hidden>Arrêter la caméra</button>
-              <label id="stage-upload-label" class="button button-secondary file-button" for="image-upload">Importer une image</label>
-              <input id="image-upload" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="upload-help">
-              <small id="upload-help" class="stage-file-help">JPEG, PNG ou WebP · 15 Mo maximum</small>
-            </div>
-            <p id="capture-guidance" class="capture-guidance">Pour de meilleurs résultats, cadrez les équipements de près, évitez le contre-jour et prenez une seconde photo si des objets sont masqués.</p>
-            <aside id="quality-panel" class="quality-panel" aria-live="polite" hidden>
-              <strong id="quality-summary"></strong>
-              <p id="quality-metrics"></p>
-              <ul id="quality-guidance"></ul>
-            </aside>
-            <p id="analysis-status" class="stage-status" aria-live="polite">Initialisation de l’application.</p>
-            <p id="visual-caption" class="visual-caption">Le cadrage influence les résultats. Les objets masqués peuvent ne pas être reconnus.</p>
-          </div>
-
-          <div class="control-panel">
-            <div class="control-section">
-              <h3>Analyse locale et confidentielle</h3>
-              <p class="privacy-notice">L’analyse est réalisée directement dans votre navigateur. Les images ne sont ni envoyées ni enregistrées. Les personnes ne sont ni affichées ni comptées.</p>
-            </div>
-
-            <details class="control-section advanced-settings">
-              <summary>Réglages avancés</summary>
-              <div class="advanced-settings-body">
-                <div class="range-heading"><label for="confidence">Seuil de confiance</label><output id="confidence-value" for="confidence">30 %</output></div>
-                <input id="confidence" type="range" min="10" max="85" step="5" value="30">
-                <p class="field-help">Un seuil plus bas affiche davantage de détections, mais peut augmenter les faux positifs.</p>
-                <p id="low-threshold-warning" class="threshold-warning" hidden>Seuil faible : contrôlez attentivement les faux positifs.</p>
-              </div>
-            </details>
-
-            <div id="app-error" class="error-panel" role="alert" hidden>
-              <div><strong id="error-title"></strong><p id="error-message"></p></div>
-              <button id="error-action" class="button button-small" type="button" hidden></button>
-            </div>
-
-            <div class="control-actions">
-              <button id="analyse-upload" class="button button-primary" type="button" disabled title="Une image et le modèle prêt sont nécessaires">Relancer l’analyse</button>
-              <button id="reset-audit" class="button button-ghost" type="button">Recommencer</button>
-            </div>
-          </div>
-        </div>
-        </div>
-
+        <div class="workflow-switch" role="tablist" aria-label="Mode d’analyse complémentaire"><button id="workflow-visual" class="workflow-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="visual-workflow">Capture visuelle</button><button id="workflow-audio" class="workflow-tab" type="button" role="tab" aria-selected="false" aria-controls="sound-workflow">Écoute sonore</button></div>
+        <div id="visual-workflow" class="capture-tip" role="tabpanel" aria-labelledby="workflow-visual"><strong>Conseil de cadrage</strong><p>Évitez le contre-jour, gardez les équipements entiers dans le cadre et prenez une seconde vue pour les zones masquées.</p></div>
         <section id="sound-workflow" class="sound-panel" role="tabpanel" aria-labelledby="workflow-audio" hidden>
-          <div class="sound-intro">
-            <div><p class="eyebrow">Écoute volontaire</p><h3>Événements sonores de la salle</h3></div>
-            <p>YAMNet classe de courtes fenêtres audio dans un worker local. Le son brut est aussitôt remplacé par des catégories : aucune conservation, transcription ou identification de voix.</p>
-          </div>
-          <div class="sound-grid">
-            <div class="sound-live">
-              <span class="sound-pulse" aria-hidden="true"></span>
-              <strong id="audio-current" aria-live="polite">Aucun événement stable au-dessus du seuil.</strong>
-              <p id="audio-status" aria-live="polite">Microphone arrêté. Aucun son n’est analysé.</p>
-              <div class="sound-actions">
-                <button id="start-audio" class="button button-primary" type="button">Démarrer l’écoute</button>
-                <button id="stop-audio" class="button button-secondary" type="button" disabled>Arrêter</button>
-              </div>
-              <p id="audio-error" class="audio-error" role="alert" hidden></p>
-            </div>
-            <div class="sound-settings">
-              <div class="range-heading"><label for="sound-confidence">Seuil sonore</label><output id="sound-confidence-value" for="sound-confidence">30 %</output></div>
-              <input id="sound-confidence" type="range" min="10" max="85" step="5" value="30">
-              <p class="field-help">Deux fenêtres consécutives sont requises avant d’afficher un événement.</p>
-              <h3>Événements récents</h3>
-              <ul id="audio-recent" class="audio-recent"><li>Aucun événement confirmé.</li></ul>
-            </div>
-          </div>
+          <div class="sound-intro"><div><p class="eyebrow">Écoute volontaire</p><h2>Événements sonores</h2></div><p>YAMNet classe localement de courtes fenêtres. Aucun son brut, transcript ou identifiant vocal n’est conservé.</p></div>
+          <div class="sound-grid"><div class="sound-live"><span class="sound-pulse" aria-hidden="true"></span><strong id="audio-current" aria-live="polite">Aucun événement stable au-dessus du seuil.</strong><p id="audio-status" aria-live="polite">Microphone arrêté. Aucun son n’est analysé.</p><div class="sound-actions"><button id="start-audio" class="button button-primary" type="button">Démarrer l’écoute</button><button id="stop-audio" class="button button-secondary" type="button" disabled>Arrêter</button></div><p id="audio-error" class="audio-error" role="alert" hidden></p></div><div class="sound-settings"><div class="range-heading"><label for="sound-confidence">Seuil sonore</label><output id="sound-confidence-value" for="sound-confidence">30 %</output></div><input id="sound-confidence" type="range" min="10" max="85" step="5" value="30"><p class="field-help">Deux fenêtres consécutives sont requises.</p><h3>Événements récents</h3><ul id="audio-recent" class="audio-recent"><li>Aucun événement confirmé.</li></ul></div></div>
         </section>
       </section>
 
-      <section id="results-section" class="section shell" aria-labelledby="results-title">
-        <div class="section-heading">
-          <div><p class="eyebrow">02 · Résultats réels</p><h2 id="results-title">Objets détectés</h2></div>
-          <p id="results-summary">Lancez une analyse pour afficher les objets reconnus.</p>
-        </div>
-        <div id="detection-results" class="results-empty"><p>Aucun résultat pour le moment.</p></div>
+      <section id="analysis-screen" class="workflow-screen" data-workflow-screen="analysis" aria-labelledby="analysis-title" hidden inert aria-hidden="true">
+        <div class="screen-heading"><p class="eyebrow">Étape 2 · Analyse</p><h1 id="analysis-title" tabindex="-1">Analyse de la photo figée</h1><p id="analysis-status" aria-live="polite">Analyse locale en attente.</p></div>
+        <div class="analysis-layout"><div id="visual-stage" class="visual-stage analysis-stage"><canvas id="analysis-canvas">Image capturée.</canvas><canvas id="detection-overlay" class="detection-overlay" aria-hidden="true"></canvas><div id="analysis-overlay" class="analysis-overlay"><span class="spinner" aria-hidden="true"></span><strong>Analyse finale en cours…</strong><small>Cette analyse est distincte des conseils caméra.</small></div></div><aside class="analysis-progress-card"><span class="privacy-icon" aria-hidden="true">✓</span><h2>Traitement local</h2><p>COCO-SSD mobilenet_v2 analyse la photo. Aucun résultat live n’est copié dans le rapport.</p><div class="control-actions"><button id="retry-analysis" class="button button-primary" type="button">Réessayer</button><button id="cancel-analysis" class="button button-ghost" type="button">Annuler</button></div></aside></div>
+        <div id="app-error" class="error-panel" role="alert" hidden><div><strong id="error-title"></strong><p id="error-message"></p></div><button id="error-action" class="button button-small" type="button" hidden></button></div>
       </section>
 
-      <section id="configuration-section" class="section section-tinted" aria-labelledby="configuration-title" hidden>
-        <div class="shell">
-          <div class="section-heading">
-            <div><p class="eyebrow">Configuration théorique</p><h2 id="configuration-title">Équipements attendus</h2></div>
-            <p>Modifiez la configuration de référence. Les résultats se recalculent sans relancer l’analyse.</p>
-          </div>
-          <div class="configuration-toolbar">
-            <p id="configuration-label" class="configuration-label" hidden>Configuration de démonstration fictive</p>
-            <div>
-              <button id="load-example" class="button button-secondary" type="button">Charger la configuration d’exemple EPITA</button>
-              <button id="reset-configuration" class="button button-ghost" type="button">Réinitialiser la configuration</button>
-            </div>
-          </div>
-          <div id="configuration-grid" class="configuration-grid"></div>
-        </div>
+      <section id="results-screen" class="workflow-screen" data-workflow-screen="results" aria-labelledby="results-title" hidden inert aria-hidden="true">
+        <div class="screen-heading screen-heading-row"><div><p class="eyebrow">Étape 3 · Résultats</p><h1 id="results-title" tabindex="-1">Constats et confirmations</h1></div><span id="global-status" class="global-status status-waiting">En attente</span></div>
+        <div class="results-layout"><div><div class="result-visual-wrap"><canvas id="results-canvas">Image analysée.</canvas><canvas id="results-overlay" class="detection-overlay" aria-hidden="true"></canvas><canvas id="annotation-overlay" aria-label="Zone d’annotation manuelle"></canvas></div><aside id="quality-panel" class="quality-panel" aria-live="polite" hidden><strong id="quality-summary"></strong><p id="quality-metrics"></p><ul id="quality-guidance"></ul></aside></div><div class="results-stack"><section class="result-card"><h2>Détecté</h2><p id="results-summary">Lancez une analyse pour afficher les objets reconnus.</p><div id="detection-results" class="results-empty"><p>Aucun résultat.</p></div></section><section class="result-card"><div class="section-inline-heading"><div><h2>À confirmer</h2><p>Les suggestions n’affectent jamais l’audit sans confirmation.</p></div><button id="add-equipment" class="button button-small" type="button">Ajouter un équipement</button></div><div id="evidence-list"></div></section><div id="annotation-tools" class="annotation-tools" hidden><label for="annotation-label">Équipement</label><select id="annotation-label"><option value="whiteboard">Tableau blanc</option><option value="blackboard">Tableau noir</option><option value="desk">Bureau</option><option value="table">Table</option><option value="lighting-fixture">Luminaire</option><option value="ceiling-light">Plafonnier</option><option value="light-strip">Rampe lumineuse</option><option value="other-light">Autre luminaire</option></select><label for="annotation-shape">Forme</label><select id="annotation-shape"><option value="rectangle">Rectangle</option><option value="polygon">Quatre coins</option></select><button id="annotation-start" class="button button-primary button-small" type="button">Dessiner</button><button id="annotation-cancel" class="button button-ghost button-small" type="button">Annuler</button></div></div></div>
+        <div id="dashboard" class="dashboard-grid"></div><div class="audit-table-wrap"><table class="audit-table"><caption class="visually-hidden">Comparaison entre quantités attendues et confirmées</caption><thead><tr><th>Équipement</th><th>Attendu</th><th>Détecté</th><th>Différence</th><th>Statut</th></tr></thead><tbody id="audit-rows"></tbody></table></div>
       </section>
 
-      <section class="section section-tinted" aria-labelledby="dashboard-title">
-        <div class="shell">
-          <div class="section-heading">
-            <div><p class="eyebrow">03 · Vérifier</p><h2 id="dashboard-title">Synthèse de l’audit</h2></div>
-            <span id="global-status" class="global-status status-waiting">En attente</span>
-          </div>
-          <div id="dashboard" class="dashboard-grid"></div>
-          <div class="audit-table-wrap">
-            <table class="audit-table">
-              <caption class="visually-hidden">Comparaison entre quantités attendues et détectées</caption>
-              <thead><tr><th>Équipement</th><th>Attendu</th><th>Détecté</th><th>Différence</th><th>Statut</th></tr></thead>
-              <tbody id="audit-rows"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section id="report-section" class="section shell" aria-labelledby="report-title">
-        <div class="section-heading report-heading">
-          <div><p class="eyebrow">04 · Rapport</p><h2 id="report-title">Rapport d’audit</h2></div>
-          <button id="print-report" class="button button-primary" type="button" disabled>Imprimer / enregistrer en PDF</button>
-        </div>
+      <section id="report-screen" class="workflow-screen" data-workflow-screen="report" aria-labelledby="report-title" hidden inert aria-hidden="true">
+        <div class="screen-heading screen-heading-row"><div><p class="eyebrow">Étape 4 · Rapport</p><h1 id="report-title" tabindex="-1">Rapport d’audit</h1></div><button id="print-report" class="button button-primary" type="button" disabled>Imprimer / PDF</button></div>
         <div id="report-content" class="report-sheet"></div>
-        <details class="model-limitations">
-          <summary>Limites du modèle et interprétation des écarts</summary>
-          <ul>
-            <li>Les bureaux sont approximés par la classe « dining table » et les moniteurs par « tv ».</li>
-            <li>Les tableaux et fenêtres ne sont pas pris en charge.</li>
-            <li>Les objets petits, éloignés, partiellement masqués ou mal éclairés peuvent être manqués.</li>
-            <li>Une non-détection ne prouve pas l’absence d’un équipement. Un contrôle humain reste nécessaire.</li>
-          </ul>
-        </details>
+        <section class="cloud-panel" aria-labelledby="cloud-title"><div><p class="eyebrow">Optionnel</p><h2 id="cloud-title">Persistance Cloudflare</h2><p>Rien n’est envoyé sans action. Seules les données structurées confirmées sont enregistrées ; jamais l’image, la vidéo, l’audio brut ni une personne.</p></div><label for="room-name">Nom facultatif de la salle</label><input id="room-name" maxlength="120" autocomplete="off"><div class="cloud-actions"><button id="save-cloud" class="button button-primary" type="button">Enregistrer dans Cloudflare</button><button id="export-local" class="button button-secondary" type="button">Exporter localement</button><button id="clear-local" class="button button-ghost" type="button">Effacer la copie restaurée</button></div><p id="cloud-status" role="status">Cloudflare n’est contacté qu’à votre demande.</p><div class="section-inline-heading"><h3>Audits enregistrés</h3><button id="refresh-cloud" class="button button-small button-ghost" type="button">Actualiser</button></div><ul id="saved-audits" class="saved-audits"><li>Liste non chargée.</li></ul></section>
       </section>
     </main>
 
-    <footer class="site-footer">
-      <div class="shell"><p><strong>SalleScope</strong> · EPITA Smart Classroom</p><p>COCO-SSD et YAMNet, exécutés localement.</p></div>
-    </footer>
+    <nav class="bottom-nav" aria-label="Navigation de l’audit"><button type="button" data-navigate="capture" class="is-active"><span aria-hidden="true">⌗</span>Capturer</button><button type="button" data-navigate="results"><span aria-hidden="true">✓</span>Résultats</button><button type="button" data-navigate="report"><span aria-hidden="true">▤</span>Rapport</button></nav>
+
+    <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title"><form method="dialog" class="settings-sheet"><div class="settings-heading"><div><p class="eyebrow">Paramètres avancés</p><h2 id="settings-title">Réglages de l’audit</h2></div><button id="close-settings" class="icon-button" value="close" aria-label="Fermer les réglages">×</button></div><fieldset id="audit-mode" class="mode-selector"><legend>Type d’analyse</legend><label><input type="radio" name="audit-mode" value="free" checked><span><strong>Détection libre</strong><small>Sans référence théorique.</small></span></label><label><input type="radio" name="audit-mode" value="configured"><span><strong>Audit configuré</strong><small>Comparer à des quantités attendues.</small></span></label></fieldset><section id="configuration-section" hidden><div class="configuration-toolbar"><p id="configuration-label" class="configuration-label" hidden>Exemple EPITA fictif</p><div><button id="load-example" class="button button-small button-secondary" type="button">Charger l’exemple</button><button id="reset-configuration" class="button button-small button-ghost" type="button">Effacer</button></div></div><div id="configuration-grid" class="configuration-grid"></div></section><div class="control-section"><div class="range-heading"><label for="confidence">Seuil visuel final</label><output id="confidence-value" for="confidence">30 %</output></div><input id="confidence" type="range" min="10" max="85" step="5" value="30"><p class="field-help">Ce seuil s’applique à l’analyse finale COCO. Il ne s’applique pas aux régions sémantiques.</p><p id="low-threshold-warning" class="threshold-warning" hidden>Seuil faible : contrôlez les faux positifs.</p></div></form></dialog>
+
+    <dialog id="camera-workspace" class="camera-workspace" aria-labelledby="camera-title"><div class="camera-surface"><video id="camera-live-preview" playsinline autoplay muted aria-label="Aperçu caméra en direct"></video><canvas id="camera-live-overlay" aria-hidden="true"></canvas><div id="camera-recovery" class="camera-recovery" hidden><strong>Caméra indisponible</strong><p>Importez une image pour continuer.</p><button id="camera-upload-alternative" class="button button-primary" type="button">Importer une image</button></div><div class="camera-topbar"><button id="camera-close" class="camera-control" type="button" aria-label="Fermer la caméra">×</button><h2 id="camera-title">Caméra SalleScope</h2><button id="camera-switch" class="camera-control" type="button" aria-label="Changer de caméra" hidden>↻</button></div><div class="camera-status-row"><span id="camera-lighting-status" class="camera-chip">Mesure de l’image…</span><span id="camera-model-status" class="camera-chip">Chargement de la détection…</span></div><div class="camera-bottombar"><label class="live-toggle"><input id="camera-live-toggle" type="checkbox" checked> Détection en direct</label><button id="camera-capture" class="camera-shutter" type="button" aria-label="Prendre la photo"><span></span></button><span class="camera-final-note">Analyse finale après capture</span></div></div></dialog>
   </body>
 </html>

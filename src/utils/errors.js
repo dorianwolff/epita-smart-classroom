@@ -34,5 +34,6 @@ export function getErrorContent(error) {
 
 export function safeLog(context, error) {
   const detail = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-  console.error(`[SalleScope] ${context}: ${detail}`);
+  const location = error instanceof Error ? error.stack?.split("\n").slice(1, 3).join(" ").trim() : "";
+  console.error(`[SalleScope] ${context}: ${detail}${location ? ` · ${location}` : ""}`);
 }

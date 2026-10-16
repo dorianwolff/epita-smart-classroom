@@ -29,7 +29,8 @@ export function createStore() {
     audioCurrentEvent: null,
     audioRecentEvents: [],
     audioError: null,
-    audioMetadata: null
+    audioMetadata: null,
+    evidence: []
   };
 
   const emit = () => listeners.forEach((listener) => listener(state));
@@ -67,6 +68,7 @@ export function createStore() {
     setThreshold(value) { update({ confidenceThreshold: value }); persist(); },
     setSoundThreshold(value) { update({ soundConfidenceThreshold: value }); persist(); },
     setImageQuality(imageQuality) { update({ imageQuality }); },
+    setEvidence(evidence) { update({ evidence: [...evidence] }); },
     setAudioState(patch) { update(patch); },
     resetAudio() {
       update({ audioStatus: "idle", audioCurrentEvent: null, audioRecentEvents: [], audioError: null, audioMetadata: null });
@@ -84,6 +86,7 @@ export function createStore() {
         analysed: false,
         auditMetadata: null,
         imageQuality: null,
+        evidence: [],
         error: null
       });
       return analysis.requestId;
@@ -145,7 +148,8 @@ export function createStore() {
         analysed: false,
         error: null,
         auditMetadata: null,
-        imageQuality: null
+        imageQuality: null,
+        evidence: []
       });
     }
   };

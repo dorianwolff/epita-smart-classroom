@@ -11,15 +11,16 @@ function mapCameraError(error) {
 
 export function createCameraService() {
   let stream = null;
+  let deviceId = null;
 
-  async function start(videoElement) {
+  async function start(videoElement, options = {}) {
     if (!window.isSecureContext) throw new AppError("INSECURE_CONTEXT");
     if (!navigator.mediaDevices?.getUserMedia) throw new AppError("UNSUPPORTED_BROWSER");
     stop(videoElement);
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: { ideal: "environment" },
+          ...(options.deviceId ? { deviceId: { exact: options.deviceId } } : { facingMode: { ideal: "environment" } }),
           width: { ideal: DEFAULTS.camera.idealWidth },
           height: { ideal: DEFAULTS.camera.idealHeight }
         },
@@ -27,6 +28,8 @@ export function createCameraService() {
       });
       videoElement.srcObject = stream;
       await videoElement.play();
+      deviceId = stream.getVideoTracks?.()[0]?.getSettings?.().deviceId ?? options.deviceId ?? null;
+      stream.getVideoTracks?.()[0]?.addEventListener?.("ended", () => options.onEnded?.());
       return stream;
     } catch (error) {
       throw new AppError(mapCameraError(error));
@@ -52,6 +55,19 @@ export function createCameraService() {
     if (videoElement) videoElement.srcObject = null;
   }
 
+  async function listVideoInputs() {
+    if (!navigator.mediaDevices?.enumerateDevices) return [];
+    return (await navigator.mediaDevices.enumerateDevices()).filter((item) => item.kind === "videoinput");
+  }
+
+  async function switchCamera(videoElement, options = {}) {
+    const devices = await listVideoInputs();
+    if (devices.length < 2) return null;
+    const currentIndex = Math.max(0, devices.findIndex((item) => item.deviceId === deviceId));
+    const next = devices[(currentIndex + 1) % devices.length];
+    return start(videoElement, { ...options, deviceId: next.deviceId });
+  }
+
   function pause(videoElement) {
     videoElement?.pause?.();
   }
@@ -63,5 +79,5 @@ export function createCameraService() {
     return stream;
   }
 
-  return { start, capture, stop, pause, resume, isActive: () => Boolean(stream) };
+  return { start, capture, stop, pause, resume, switchCamera, listVideoInputs, isActive: () => Boolean(stream) };
 }

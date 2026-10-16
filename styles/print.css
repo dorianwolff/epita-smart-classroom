@@ -1,11 +1,11 @@
 @page { size: A4; margin: 14mm; }
 body { color: #111; background: #fff; font-size: 10pt; }
-button, .button { display: none !important; }
-.site-header, .hero, .workflow, #audit-workspace, .section-tinted, #results-section,
-.report-heading .eyebrow, #print-report, .site-footer { display: none !important; }
-.section { padding: 0; }
-#report-section { width: 100%; }
-.report-heading { display: block; margin-bottom: 8mm; }
+button, .button, .app-bar, .step-indicator, .bottom-nav, #capture-screen, #analysis-screen, #results-screen,
+.cloud-panel { display: none !important; }
+.app-main { width: 100%; padding: 0; }
+#report-screen { display: block !important; width: 100%; min-height: 0; }
+#report-screen[aria-hidden="true"] { display: block !important; }
+.screen-heading { display: block; margin-bottom: 8mm; }
 .report-sheet { padding: 0; border: 0; box-shadow: none; }
 .report-grid { grid-template-columns: 1fr 1fr; gap: 4mm; }
 .report-block { break-inside: avoid; padding: 4mm; }

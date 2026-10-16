@@ -19,17 +19,20 @@ function getRowStatus({ analysed, configured, supported, expected, detected }) {
   return "Surplus observé";
 }
 
-function buildRows(categories, expectedConfiguration, classCounts, analysed, configured) {
+function buildRows(categories, expectedConfiguration, classCounts, evidenceCounts, analysed, configured) {
   return categories.map((category) => {
     const expected = configured ? expectedConfiguration[category.id] : null;
-    const detected = analysed && category.cocoClass ? classCounts[category.cocoClass] ?? 0 : null;
+    const evidenceCount = evidenceCounts[category.id] ?? 0;
+    const supported = category.supported || evidenceCount > 0;
+    const detected = analysed && (category.cocoClass || evidenceCount > 0)
+      ? (category.cocoClass ? classCounts[category.cocoClass] ?? 0 : 0) + evidenceCount : null;
     const difference = Number.isInteger(expected) && detected !== null ? detected - expected : null;
     return {
-      ...category,
+      ...category, supported,
       expected,
       detected,
       difference,
-      status: getRowStatus({ analysed, configured, supported: category.supported, expected, detected })
+      status: getRowStatus({ analysed, configured, supported, expected, detected })
     };
   });
 }
@@ -49,10 +52,17 @@ function getGlobalStatus(analysed, configured, verifiableRules, observedDifferen
   return "Contrôle complémentaire recommandé";
 }
 
-export function calculateAudit({ detections, categories, expectedConfiguration, analysed, auditMode }) {
+export function calculateAudit({ detections, evidence = [], categories, expectedConfiguration, analysed, auditMode }) {
   const configured = auditMode === AUDIT_MODE.CONFIGURED;
   const classCounts = countByClass(detections);
-  const rows = buildRows(categories, expectedConfiguration, classCounts, analysed, configured);
+  const evidenceCounts = evidence.filter((item) => item.status === "confirmed" && item.canAffectAudit)
+    .reduce((counts, item) => {
+      const category = { "whiteboard": "board", "blackboard": "board", "desk": "tables", "table": "tables",
+        "desk-or-table": "tables", "lighting-fixture": "lights" }[item.label];
+      if (category) counts[category] = (counts[category] ?? 0) + 1;
+      return counts;
+    }, {});
+  const rows = buildRows(categories, expectedConfiguration, classCounts, evidenceCounts, analysed, configured);
   const verifiableRows = rows.filter((row) => row.supported && Number.isInteger(row.expected));
   const differences = analysed ? verifiableRows.filter((row) => row.difference !== 0) : [];
   const verifiableRules = analysed && configured ? verifiableRows.length : 0;
@@ -66,7 +76,7 @@ export function calculateAudit({ detections, categories, expectedConfiguration, 
     otherObjects: buildOtherObjects(classCounts),
     differences,
     metrics: {
-      totalSafeObjects: analysed ? detections.length : 0,
+      totalSafeObjects: analysed ? detections.length + Object.values(evidenceCounts).reduce((sum, value) => sum + value, 0) : 0,
       distinctCategories: analysed ? Object.keys(classCounts).length : 0,
       verifiableRules,
       observedDifferences: differences.length,

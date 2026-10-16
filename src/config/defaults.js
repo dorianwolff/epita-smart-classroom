@@ -17,6 +17,34 @@ export const DEFAULTS = Object.freeze({
     label: "COCO-SSD · MobileNet v2"
   }),
   camera: Object.freeze({ idealWidth: 1920, idealHeight: 1080 }),
+  live: Object.freeze({
+    detectorId: "coco-ssd-lite-mobilenet-v2",
+    detectorLabel: "COCO-SSD · Lite MobileNet v2",
+    initialLongestSide: 576,
+    reducedLongestSide: 448,
+    minimumIntervalMilliseconds: 700,
+    slowInferenceMilliseconds: 1400,
+    missedFrameTolerance: 2,
+    smoothingAlpha: 0.42,
+    minimumIoU: 0.25
+  }),
+  cloud: Object.freeze({
+    schemaVersion: 1,
+    maximumBodyBytes: 64 * 1024,
+    maximumAuditsPerPage: 50,
+    defaultRetentionDays: 90
+  }),
+  segmentation: Object.freeze({
+    id: "Xenova/segformer-b0-finetuned-ade-512-512",
+    revision: "d3e5499fa8701ff0453ca940a8dfeae39b2f1504",
+    runtime: "@huggingface/transformers",
+    modelFile: "onnx/model_quantized.onnx",
+    bytes: 4420000,
+    sha256: "9a98d6daf3d926869ab8cc4c2ed7374a2bc23b889bb7ca3b0915d15e3c4756bb",
+    license: "NVIDIA Source Code License for SegFormer (research/evaluation only)",
+    shipped: false,
+    decision: "rejected-license"
+  }),
   preprocessing: Object.freeze({ id: "original", label: "Image originale, sans correction automatique" }),
   audio: Object.freeze({
     id: "yamnet-float32-v1",

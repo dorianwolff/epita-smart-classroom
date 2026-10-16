@@ -81,11 +81,13 @@ export function renderReport(container, state) {
 
   if (state.imageQuality?.metrics) {
     const quality = state.imageQuality;
-    addListBlock(container, "Qualité de l’image", [
+    addListBlock(container, "Qualité lumineuse de l’image", [
       `Évaluation : ${quality.status}`,
       `Dimensions analysées : ${quality.metrics.width} × ${quality.metrics.height} px`,
-      `Luminosité moyenne : ${quality.metrics.meanLuminance}/255`,
-      `Contraste : ${quality.metrics.contrast}`,
+      `Luminance relative moyenne : ${Math.round(quality.metrics.meanLuminance * 100)} %`,
+      `Luminance relative médiane : ${Math.round(quality.metrics.medianLuminance * 100)} %`,
+      `Contraste par étendue P10–P90 : ${Math.round(quality.metrics.contrast * 100)} %`,
+      "Mesure issue des pixels après linéarisation sRGB ; ce n’est pas un éclairement physique en lux.",
       ...quality.guidance
     ], "Qualité non mesurée.");
   }
@@ -110,10 +112,18 @@ export function renderReport(container, state) {
   ], "Aucun.");
   container.append(lowerGrid);
 
+  const confirmedEvidence = (state.evidence ?? []).filter((item) => item.status === "confirmed");
+  const candidates = (state.evidence ?? []).filter((item) => item.status === "candidate");
+  addListBlock(container, "Équipements confirmés manuellement", confirmedEvidence.map((item) =>
+    `${item.label} — ${item.evidenceType === "manual" ? "Confirmé manuellement" : "Suggestion confirmée"}`), "Aucune confirmation manuelle.");
+  addListBlock(container, "À vérifier", candidates.map((item) => `${item.label} — ${item.explanation}`), "Aucune suggestion en attente.");
+
   addListBlock(container, "Limites de l’analyse", [
     "COCO-SSD est un modèle généraliste : ses classes ne correspondent pas toujours exactement au mobilier scolaire.",
     "Les bureaux sont approximés par la classe « dining table » et les moniteurs par « tv ».",
-    "Les tableaux et fenêtres ne sont pas pris en charge.",
+    "COCO-SSD ne détecte pas les tableaux ; un tableau ne peut être compté qu’après confirmation manuelle.",
+    "Les suggestions contextuelles et les régions sémantiques ne sont pas des détections d’instance.",
+    "La qualité lumineuse de l’image n’est pas une mesure calibrée de l’éclairement de la salle.",
     "Les objets petits, éloignés, partiellement masqués ou mal éclairés peuvent ne pas être détectés.",
     "Une quantité inférieure ne prouve pas l’absence d’un équipement.",
     "Les personnes sont supprimées des résultats avant tout affichage ou calcul.",

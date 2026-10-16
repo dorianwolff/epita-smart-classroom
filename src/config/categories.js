@@ -52,6 +52,15 @@ export const CATEGORIES = Object.freeze([
     exampleExpected: 0,
     color: "#8a96a8",
     limitation: "COCO-SSD ne prend pas en charge les fenêtres."
+  },
+  {
+    id: "lights",
+    label: "Luminaires",
+    cocoClass: null,
+    supported: false,
+    exampleExpected: 0,
+    color: "#f59e0b",
+    limitation: "Les luminaires sémantiques ou manuels doivent être confirmés avant comptage."
   }
 ]);
 
