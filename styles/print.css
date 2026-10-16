@@ -1,0 +1,15 @@
+@page { size: A4; margin: 14mm; }
+body { color: #111; background: #fff; font-size: 10pt; }
+button, .button { display: none !important; }
+.site-header, .hero, .workflow, #audit-workspace, .section-tinted, #results-section,
+.report-heading .eyebrow, #print-report, .site-footer { display: none !important; }
+.section { padding: 0; }
+#report-section { width: 100%; }
+.report-heading { display: block; margin-bottom: 8mm; }
+.report-sheet { padding: 0; border: 0; box-shadow: none; }
+.report-grid { grid-template-columns: 1fr 1fr; gap: 4mm; }
+.report-block { break-inside: avoid; padding: 4mm; }
+.report-table { break-inside: auto; }
+.report-table tr { break-inside: avoid; }
+h2 { font-size: 22pt; }
+h3 { font-size: 12pt; }

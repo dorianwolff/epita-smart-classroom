@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="SalleScope analyse localement les équipements visibles d'une salle de cours.">
+    <meta name="theme-color" content="#0b1f3a">
+    <title>SalleScope — EPITA Smart Classroom</title>
+    <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="stylesheet" href="./styles/tokens.css">
+    <link rel="stylesheet" href="./styles/base.css">
+    <link rel="stylesheet" href="./styles/layout.css">
+    <link rel="stylesheet" href="./styles/components.css">
+    <link rel="stylesheet" href="./styles/responsive.css">
+    <link rel="stylesheet" href="./styles/print.css" media="print">
+    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+    <script type="module" src="./src/main.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#audit-workspace">Aller à l’audit</a>
+    <header class="site-header">
+      <div class="shell header-inner">
+        <a class="brand" href="#top" aria-label="SalleScope, accueil">
+          <span class="brand-mark" aria-hidden="true">S</span>
+          <span><strong>SalleScope</strong><small>EPITA Smart Classroom</small></span>
+        </a>
+        <div class="header-status">
+          <span id="model-status" class="status-pill status-loading" aria-live="polite">Chargement du modèle</span>
+          <span class="privacy-mini">Analyse locale · aucune image envoyée</span>
+        </div>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero shell" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Audit visuel · local · confidentiel</p>
+          <h1 id="hero-title">Votre salle est-elle prête&nbsp;?</h1>
+          <p class="hero-description">Photographiez une salle ou importez une image. SalleScope compte les équipements visibles et signale les écarts qui nécessitent un contrôle.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#audit-workspace">Démarrer un audit</a>
+            <button class="button button-secondary" id="hero-upload" type="button">Utiliser une image de test</button>
+          </div>
+        </div>
+        <aside class="privacy-card" aria-label="Engagement de confidentialité">
+          <span class="privacy-icon" aria-hidden="true">✓</span>
+          <div>
+            <strong>Vos images restent sur cet appareil</strong>
+            <p>L’analyse est réalisée directement dans votre navigateur. Les images ne sont ni envoyées ni enregistrées. Les personnes ne sont ni affichées ni comptées.</p>
+          </div>
+        </aside>
+      </section>
+
+      <nav class="workflow shell" aria-label="Étapes de l’audit">
+        <ol>
+          <li class="is-active"><span>1</span>Préparer</li>
+          <li><span>2</span>Analyser</li>
+          <li><span>3</span>Vérifier</li>
+          <li><span>4</span>Rapport</li>
+        </ol>
+      </nav>
+
+      <section id="audit-workspace" class="section shell" aria-labelledby="analysis-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">01 · Préparer et analyser</p><h2 id="analysis-title">Image de la salle</h2></div>
+          <p>Cadrez autant d’équipements que possible, sans chercher à identifier les personnes.</p>
+        </div>
+
+        <div class="analysis-grid">
+          <div class="visual-panel">
+            <div id="visual-stage" class="visual-stage is-empty">
+              <video id="camera-preview" playsinline muted hidden aria-label="Aperçu de la caméra"></video>
+              <canvas id="detection-canvas" hidden>Visualisation de l’image analysée et des objets détectés.</canvas>
+              <div id="empty-visual" class="empty-visual">
+                <span class="empty-icon" aria-hidden="true">⌗</span>
+                <strong>Aucune image sélectionnée</strong>
+                <p>Démarrez la caméra ou importez une image autorisée.</p>
+              </div>
+              <div id="analysis-overlay" class="analysis-overlay" hidden>
+                <span class="spinner" aria-hidden="true"></span>
+                <strong>Analyse en cours…</strong>
+                <small>Les calculs restent dans ce navigateur.</small>
+              </div>
+            </div>
+            <p id="visual-caption" class="visual-caption">Le cadrage influence les résultats. Les objets masqués peuvent ne pas être reconnus.</p>
+          </div>
+
+          <div class="control-panel">
+            <div class="control-section">
+              <h3>Source visuelle</h3>
+              <p class="privacy-notice">L’analyse est réalisée directement dans votre navigateur. Les images ne sont ni envoyées ni enregistrées. Les personnes ne sont ni affichées ni comptées.</p>
+              <div class="button-stack">
+                <button id="start-camera" class="button button-primary" type="button">Démarrer la caméra</button>
+                <button id="capture" class="button button-primary" type="button" disabled title="Le modèle et la caméra doivent être prêts">Capturer et analyser</button>
+                <button id="stop-camera" class="button button-secondary" type="button" disabled>Arrêter la caméra</button>
+                <label class="button button-secondary file-button" for="image-upload">Importer une image</label>
+                <input id="image-upload" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="upload-help">
+                <small id="upload-help">JPEG, PNG ou WebP · 15 Mo maximum</small>
+              </div>
+            </div>
+
+            <div class="control-section">
+              <div class="range-heading"><label for="confidence">Seuil de confiance</label><output id="confidence-value" for="confidence">60 %</output></div>
+              <input id="confidence" type="range" min="30" max="90" step="5" value="60">
+              <p class="field-help">Un seuil plus élevé réduit les faux positifs, mais peut ignorer certains objets.</p>
+            </div>
+
+            <div id="app-error" class="error-panel" role="alert" hidden>
+              <div><strong id="error-title"></strong><p id="error-message"></p></div>
+              <button id="error-action" class="button button-small" type="button" hidden></button>
+            </div>
+
+            <div class="control-actions">
+              <button id="analyse-upload" class="button button-primary" type="button" disabled title="Sélectionnez une image et attendez que le modèle soit prêt">Analyser l’image</button>
+              <button id="reset-audit" class="button button-ghost" type="button">Recommencer</button>
+            </div>
+            <p id="analysis-status" class="sr-status" aria-live="polite">Initialisation de l’application.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-tinted" aria-labelledby="configuration-title">
+        <div class="shell">
+          <div class="section-heading">
+            <div><p class="eyebrow">Configuration théorique</p><h2 id="configuration-title">Équipements attendus</h2></div>
+            <p>Modifiez la configuration de référence. Les résultats se recalculent sans relancer l’analyse.</p>
+          </div>
+          <div id="configuration-grid" class="configuration-grid"></div>
+        </div>
+      </section>
+
+      <section id="results-section" class="section shell" aria-labelledby="results-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">02 · Résultats réels</p><h2 id="results-title">Objets détectés</h2></div>
+          <p id="results-summary">Lancez une analyse pour afficher les objets reconnus.</p>
+        </div>
+        <div id="detection-results" class="results-empty"><p>Aucun résultat pour le moment.</p></div>
+      </section>
+
+      <section class="section section-tinted" aria-labelledby="dashboard-title">
+        <div class="shell">
+          <div class="section-heading">
+            <div><p class="eyebrow">03 · Vérifier</p><h2 id="dashboard-title">Synthèse de l’audit</h2></div>
+            <span id="global-status" class="global-status status-waiting">En attente</span>
+          </div>
+          <div id="dashboard" class="dashboard-grid"></div>
+          <div class="audit-table-wrap">
+            <table class="audit-table">
+              <caption class="visually-hidden">Comparaison entre quantités attendues et détectées</caption>
+              <thead><tr><th>Équipement</th><th>Attendu</th><th>Détecté</th><th>Différence</th><th>Statut</th></tr></thead>
+              <tbody id="audit-rows"></tbody>
+            </table>
+          </div>
+          <p class="audit-explanation">Une quantité inférieure peut provenir d’un objet masqué, d’un mauvais cadrage ou d’une limite du modèle. Un contrôle humain reste nécessaire.</p>
+        </div>
+      </section>
+
+      <section id="report-section" class="section shell" aria-labelledby="report-title">
+        <div class="section-heading report-heading">
+          <div><p class="eyebrow">04 · Rapport</p><h2 id="report-title">Rapport d’audit</h2></div>
+          <button id="print-report" class="button button-primary" type="button" disabled>Imprimer / enregistrer en PDF</button>
+        </div>
+        <div id="report-content" class="report-sheet"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell"><p><strong>SalleScope</strong> · EPITA Smart Classroom</p><p>Détection locale avec TensorFlow.js et COCO-SSD.</p></div>
+    </footer>
+  </body>
+</html>

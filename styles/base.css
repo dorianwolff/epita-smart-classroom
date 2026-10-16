@@ -1,0 +1,36 @@
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-width: 320px;
+  color: var(--color-text);
+  background: var(--color-background);
+  font: 400 1rem/1.6 var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; }
+button, label { -webkit-tap-highlight-color: transparent; }
+button { color: inherit; }
+a { color: inherit; }
+h1, h2, h3, p { margin-top: 0; }
+h1, h2, h3 { color: var(--color-navy); line-height: 1.15; }
+h1 { max-width: 780px; margin-bottom: var(--space-4); font-size: clamp(2.45rem, 7vw, 5rem); letter-spacing: -0.055em; }
+h2 { margin-bottom: 0; font-size: clamp(1.75rem, 4vw, 2.5rem); letter-spacing: -0.035em; }
+h3 { margin-bottom: var(--space-3); font-size: 1.05rem; }
+small { font-size: 0.82rem; }
+input[type="range"] { width: 100%; accent-color: var(--color-accent-dark); }
+input[type="number"] { width: 100%; min-height: 48px; padding: 0.6rem 0.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: #fff; }
+input:focus-visible, button:focus-visible, a:focus-visible, label:focus-within { outline: 3px solid rgb(32 199 181 / 35%); outline-offset: 3px; }
+button:disabled { cursor: not-allowed; opacity: 0.48; }
+[hidden] { display: none !important; }
+.shell { width: min(calc(100% - 2rem), var(--max-width)); margin-inline: auto; }
+.visually-hidden {
+  position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important;
+  overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important;
+}
+.skip-link { position: fixed; z-index: 99; top: 0.75rem; left: 0.75rem; padding: 0.65rem 1rem; color: #fff; background: var(--color-navy); border-radius: 8px; transform: translateY(-150%); }
+.skip-link:focus { transform: translateY(0); }
+.eyebrow { margin-bottom: var(--space-2); color: var(--color-accent-dark); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
