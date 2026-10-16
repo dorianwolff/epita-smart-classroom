@@ -37,6 +37,7 @@ export async function createImageSource(file) {
   const image = await decodeImage(file);
   try {
     const intrinsic = getIntrinsicSize(image);
+    if (intrinsic.width <= 0 || intrinsic.height <= 0) throw new AppError("IMAGE_LOAD");
     const fitted = fitWithinMaximum(intrinsic.width, intrinsic.height, DEFAULTS.maximumSourceDimension);
     const canvas = document.createElement("canvas");
     canvas.width = fitted.width;
@@ -46,4 +47,10 @@ export async function createImageSource(file) {
   } finally {
     image.close?.();
   }
+}
+
+export function takeSelectedFile(input) {
+  const file = input.files?.[0] ?? null;
+  input.value = "";
+  return file;
 }

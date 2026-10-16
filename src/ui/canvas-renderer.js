@@ -4,13 +4,12 @@ import { getIntrinsicSize } from "../services/source-resolution.js";
 import { formatPercent } from "../utils/formatting.js";
 
 function getLabel(detection) {
-  const category = CATEGORY_BY_CLASS.get(detection.className);
-  return `${category?.label ?? getCocoLabel(detection.className)} · ${formatPercent(detection.score)}`;
+  return `${detection.displayLabel ?? getCocoLabel(detection.rawLabel)} · ${formatPercent(detection.score)}`;
 }
 
 function drawDetection(context, detection, canvasWidth) {
-  const [x, y, width, height] = detection.bbox;
-  const color = CATEGORY_BY_CLASS.get(detection.className)?.color ?? "#20c7b5";
+  const { x, y, width, height } = detection.bbox;
+  const color = CATEGORY_BY_CLASS.get(detection.rawLabel)?.color ?? "#20c7b5";
   const label = getLabel(detection);
   const fontSize = Math.max(16, Math.round(canvasWidth / 55));
   context.font = `700 ${fontSize}px system-ui, sans-serif`;
@@ -34,6 +33,15 @@ export function renderCanvas(canvas, source, detections = []) {
   canvas.height = height;
   const context = canvas.getContext("2d", { alpha: false });
   context.drawImage(source, 0, 0, width, height);
+  detections.forEach((detection) => drawDetection(context, detection, width));
+}
+
+export function renderOverlay(canvas, source, detections = []) {
+  const { width, height } = getIntrinsicSize(source);
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  context.clearRect(0, 0, width, height);
   detections.forEach((detection) => drawDetection(context, detection, width));
 }
 

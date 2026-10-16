@@ -7,7 +7,7 @@ import { renderResults } from "./results-view.js";
 
 function renderModelStatus(element, status) {
   const content = {
-    loading: ["Chargement du modèle de détection précise…", "status-loading"],
+    loading: ["Chargement du modèle local…", "status-loading"],
     ready: ["Modèle prêt", "status-ready"],
     error: ["Modèle indisponible", "status-error"]
   }[status];
@@ -19,10 +19,14 @@ export function renderAnalysisStatus(element, state) {
   let message = "Choisissez une source visuelle pour commencer.";
   if (state.cameraStatus === "active") message = "Caméra prête. Cadrez la salle puis capturez la photo.";
   else if (state.analysisStatus === ANALYSIS_STATUS.RUNNING) message = "Analyse locale en cours…";
-  else if (state.analysisStatus === ANALYSIS_STATUS.QUEUED && state.modelStatus === MODEL_STATUS.LOADING) message = "Photo prête. L’analyse démarrera automatiquement.";
+  else if (state.analysisNotice === "stale-result") message = "Résultat obsolète ignoré. La nouvelle analyse va démarrer.";
+  else if (state.analysisNotice === "new-source") message = "Nouvelle image prête. L’analyse précédente sera ignorée.";
+  else if (state.analysisStatus === ANALYSIS_STATUS.QUEUED && state.modelStatus === MODEL_STATUS.LOADING) message = "Image prête. Modèle en cours de chargement.";
   else if (state.analysisStatus === ANALYSIS_STATUS.QUEUED && state.modelStatus === MODEL_STATUS.ERROR) message = "Photo prête. Réessayez le chargement du modèle pour lancer l’analyse.";
+  else if (state.analysisStatus === ANALYSIS_STATUS.QUEUED) message = "Analyse en attente.";
   else if (state.analysisStatus === ANALYSIS_STATUS.COMPLETE) message = "Analyse terminée. Consultez les détections et le rapport ci-dessous.";
-  else if (state.hasVisualSource) message = "Photo prête. Vous pouvez relancer l’analyse.";
+  else if (state.analysisNotice === "analysis-failed") message = "Analyse impossible. Vous pouvez réessayer ou choisir une autre image.";
+  else if (state.hasVisualSource) message = "Image prête. Vous pouvez relancer l’analyse.";
   element.textContent = message;
 }
 
@@ -39,6 +43,7 @@ function renderError(elements, error) {
 export function renderApplicationState(elements, state) {
   const running = state.analysisStatus === ANALYSIS_STATUS.RUNNING;
   const activeCamera = state.cameraStatus === "active";
+  const retainedCamera = activeCamera || state.cameraStatus === "paused";
   const auditStarted = activeCamera || state.hasVisualSource;
   renderModelStatus(elements.model_status, state.modelStatus);
   document.body.setAttribute("aria-busy", String(state.modelStatus === MODEL_STATUS.LOADING || running));
@@ -51,8 +56,8 @@ export function renderApplicationState(elements, state) {
   elements.retake_photo.hidden = activeCamera || !state.hasVisualSource;
   elements.capture.disabled = !activeCamera;
   elements.capture.hidden = !activeCamera;
-  elements.stop_camera.disabled = !activeCamera;
-  elements.stop_camera.hidden = !activeCamera;
+  elements.stop_camera.disabled = !retainedCamera;
+  elements.stop_camera.hidden = !retainedCamera;
   elements.stage_upload_label.textContent = state.hasVisualSource ? "Choisir une autre image" : "Importer une image";
   elements.capture_guidance.hidden = state.analysed;
   elements.analyse_upload.disabled = state.modelStatus !== MODEL_STATUS.READY || !state.hasVisualSource || activeCamera || running;

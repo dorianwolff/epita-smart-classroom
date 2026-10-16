@@ -4,7 +4,11 @@ import { CATEGORIES, CATEGORY_BY_CLASS, EMPTY_EXPECTED, EPITA_EXAMPLE_EXPECTED }
 import { AUDIT_MODE } from "../src/config/defaults.js";
 import { calculateAudit } from "../src/domain/audit-engine.js";
 
-const detection = (className) => ({ className, score: 0.9, bbox: [0, 0, 10, 10] });
+const detection = (rawLabel) => ({
+  rawLabel,
+  score: 0.9,
+  bbox: { x: 0, y: 0, width: 10, height: 10 }
+});
 
 function calculate(overrides = {}) {
   return calculateAudit({

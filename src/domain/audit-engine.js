@@ -4,7 +4,7 @@ import { AUDIT_MODE } from "../config/defaults.js";
 
 function countByClass(detections) {
   return detections.reduce((counts, detection) => {
-    counts[detection.className] = (counts[detection.className] ?? 0) + 1;
+    counts[detection.rawLabel] = (counts[detection.rawLabel] ?? 0) + 1;
     return counts;
   }, {});
 }

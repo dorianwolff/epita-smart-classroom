@@ -1,7 +1,7 @@
 export function getIntrinsicSize(source) {
   return {
-    width: Number(source.videoWidth || source.naturalWidth || source.width),
-    height: Number(source.videoHeight || source.naturalHeight || source.height)
+    width: Number(source?.videoWidth || source?.naturalWidth || source?.width || 0),
+    height: Number(source?.videoHeight || source?.naturalHeight || source?.height || 0)
   };
 }
 

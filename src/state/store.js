@@ -35,8 +35,10 @@ export function createStore() {
     confidenceThreshold: preferences.confidenceThreshold,
     expectedConfiguration: preferences.expectedConfiguration,
     hasVisualSource: false,
-    sourceRevision: 0,
+    currentSource: null,
+    currentAnalysis: null,
     analysisStatus: ANALYSIS_STATUS.IDLE,
+    analysisNotice: null,
     detections: [],
     audit: null,
     analysed: false,
@@ -76,40 +78,63 @@ export function createStore() {
       persist();
     },
     setThreshold(value) { update({ confidenceThreshold: value }); persist(); },
-    queueVisualSource(inputMode) {
-      const sourceRevision = state.sourceRevision + 1;
+    queueVisualSource(source, analysis) {
       update({
-        inputMode,
+        inputMode: source.type,
         hasVisualSource: true,
-        sourceRevision,
+        currentSource: source,
+        currentAnalysis: analysis,
         analysisStatus: ANALYSIS_STATUS.QUEUED,
+        analysisNotice: state.analysisStatus === ANALYSIS_STATUS.RUNNING ? "new-source" : "image-ready",
         detections: [],
+        audit: null,
         analysed: false,
         auditMetadata: null,
         error: null
       });
-      return sourceRevision;
+      return analysis.requestId;
     },
-    queueCurrentAnalysis() {
+    queueCurrentAnalysis(analysis) {
       if (!state.hasVisualSource) return false;
-      update({ analysisStatus: ANALYSIS_STATUS.QUEUED, error: null });
+      update({
+        currentAnalysis: analysis,
+        analysisStatus: ANALYSIS_STATUS.QUEUED,
+        analysisNotice: "analysis-queued",
+        detections: [],
+        audit: null,
+        analysed: false,
+        auditMetadata: null,
+        error: null
+      });
       return true;
     },
-    startAnalysis(revision) {
+    startAnalysis(analysis) {
       const valid = state.modelStatus === MODEL_STATUS.READY && state.hasVisualSource &&
-        state.analysisStatus === ANALYSIS_STATUS.QUEUED && state.sourceRevision === revision;
+        state.analysisStatus === ANALYSIS_STATUS.QUEUED && matchesAnalysis(state, analysis);
       if (!valid) return false;
-      update({ analysisStatus: ANALYSIS_STATUS.RUNNING, error: null });
+      update({ analysisStatus: ANALYSIS_STATUS.RUNNING, analysisNotice: null, error: null });
       return true;
     },
-    completeAnalysis(revision, detections, auditMetadata) {
-      if (state.sourceRevision !== revision || state.analysisStatus !== ANALYSIS_STATUS.RUNNING) return false;
-      update({ detections, auditMetadata, analysed: true, analysisStatus: ANALYSIS_STATUS.COMPLETE, error: null });
+    completeAnalysis(analysis, detections, auditMetadata) {
+      if (state.analysisStatus !== ANALYSIS_STATUS.RUNNING || !matchesAnalysis(state, analysis)) return false;
+      update({
+        detections,
+        auditMetadata,
+        analysed: true,
+        analysisStatus: ANALYSIS_STATUS.COMPLETE,
+        analysisNotice: null,
+        error: null
+      });
       return true;
     },
-    failAnalysis(revision) {
-      if (state.sourceRevision !== revision || state.analysisStatus !== ANALYSIS_STATUS.RUNNING) return false;
-      update({ analysisStatus: ANALYSIS_STATUS.IDLE });
+    failAnalysis(analysis) {
+      if (state.analysisStatus !== ANALYSIS_STATUS.RUNNING || !matchesAnalysis(state, analysis)) return false;
+      update({ analysisStatus: ANALYSIS_STATUS.IDLE, analysisNotice: "analysis-failed" });
+      return true;
+    },
+    noteStaleResult(analysis) {
+      if (state.analysisStatus !== ANALYSIS_STATUS.QUEUED || matchesAnalysis(state, analysis)) return false;
+      update({ analysisNotice: "stale-result" });
       return true;
     },
     resetAnalysis() {
@@ -117,8 +142,10 @@ export function createStore() {
         inputMode: INPUT_MODE.NONE,
         cameraStatus: "idle",
         hasVisualSource: false,
-        sourceRevision: state.sourceRevision + 1,
+        currentSource: null,
+        currentAnalysis: null,
         analysisStatus: ANALYSIS_STATUS.IDLE,
+        analysisNotice: null,
         detections: [],
         audit: null,
         analysed: false,
@@ -127,4 +154,13 @@ export function createStore() {
       });
     }
   };
+}
+
+function matchesAnalysis(state, analysis) {
+  const current = state.currentAnalysis;
+  const source = state.currentSource;
+  return Boolean(current && source &&
+    analysis.requestId === current.requestId &&
+    analysis.sourceId === source.sourceId &&
+    analysis.sourceVersion === source.sourceVersion);
 }

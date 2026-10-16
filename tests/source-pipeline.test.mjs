@@ -46,3 +46,31 @@ test("camera capture requests HD, uses intrinsic video dimensions and disables a
   assert.equal(capture.height, 900);
   assert.deepEqual(drawArguments, [video, 0, 0, 1600, 900]);
 });
+
+test("a paused camera stream can be reused, then every track is stopped", async () => {
+  let starts = 0;
+  let plays = 0;
+  let pauses = 0;
+  let stops = 0;
+  const stream = { getTracks: () => [{ stop: () => { stops += 1; } }, { stop: () => { stops += 1; } }] };
+  Object.defineProperty(globalThis, "window", { value: { isSecureContext: true }, configurable: true });
+  Object.defineProperty(globalThis, "navigator", {
+    value: { mediaDevices: { getUserMedia: async () => { starts += 1; return stream; } } },
+    configurable: true
+  });
+  const video = {
+    srcObject: null,
+    play: async () => { plays += 1; },
+    pause: () => { pauses += 1; }
+  };
+  const service = createCameraService();
+  await service.start(video);
+  service.pause(video);
+  await service.resume(video);
+  assert.equal(starts, 1);
+  assert.equal(plays, 2);
+  assert.equal(pauses, 1);
+  service.stop(video);
+  assert.equal(stops, 2);
+  assert.equal(video.srcObject, null);
+});

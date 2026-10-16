@@ -23,10 +23,30 @@ test("removes person predictions before returning detections", async () => {
   await service.load();
   const detections = await service.detect({}, 0.6);
   assert.deepEqual(detections, [
-    { className: "chair", score: 0.91, bbox: [5, 6, 7, 8] },
-    { className: "book", score: 0.82, bbox: [3, 4, 5, 6] }
+    {
+      id: "legacy-source:coco-ssd-mobilenet-v2:1",
+      sourceId: "legacy-source",
+      modelId: "coco-ssd-mobilenet-v2",
+      rawLabel: "chair",
+      categoryId: "chairs",
+      displayLabel: "Chaises",
+      score: 0.91,
+      bbox: { x: 5, y: 6, width: 7, height: 8 },
+      experimental: false
+    },
+    {
+      id: "legacy-source:coco-ssd-mobilenet-v2:2",
+      sourceId: "legacy-source",
+      modelId: "coco-ssd-mobilenet-v2",
+      rawLabel: "book",
+      categoryId: null,
+      displayLabel: "livre",
+      score: 0.82,
+      bbox: { x: 3, y: 4, width: 5, height: 6 },
+      experimental: false
+    }
   ]);
-  assert.equal(detections.some((item) => item.className === "person"), false);
+  assert.equal(detections.some((item) => item.rawLabel === "person"), false);
   assert.equal(detectionArguments[1], 100);
   assert.equal(detectionArguments[2], 0.6);
 });
@@ -58,4 +78,20 @@ test("loads the accuracy-focused model and can recover after a load failure", as
     { base: "mobilenet_v2" },
     { base: "mobilenet_v2" }
   ]);
+});
+
+test("all defensive person labels are removed at the detector boundary", async () => {
+  const privateLabels = ["person", "human", "student", "teacher", "face", "man", "woman", "boy", "girl"];
+  const detector = {
+    load: async () => {},
+    detect: async () => [
+      ...privateLabels.map((rawLabel, index) => ({ rawLabel, id: String(index) })),
+      { rawLabel: "chair", id: "safe" }
+    ],
+    dispose() {},
+    getMetadata: () => ({ id: "coco-ssd-mobilenet-v2" })
+  };
+  const service = createModelService({ detector });
+  const detections = await service.detect({}, { threshold: 0, sourceId: "source" });
+  assert.deepEqual(detections, [{ rawLabel: "chair", id: "safe" }]);
 });

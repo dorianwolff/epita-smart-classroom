@@ -7,7 +7,11 @@ export const DEFAULTS = Object.freeze({
   maximumDetectionBoxes: 100,
   maximumSourceDimension: 1600,
   maximumUploadBytes: 15 * 1024 * 1024,
-  model: Object.freeze({ base: "mobilenet_v2", label: "MobileNet v2 (précis)" }),
+  model: Object.freeze({
+    id: "coco-ssd-mobilenet-v2",
+    base: "mobilenet_v2",
+    label: "COCO-SSD · MobileNet v2"
+  }),
   camera: Object.freeze({ idealWidth: 1920, idealHeight: 1080 }),
   storageKeys: Object.freeze({ preferences: "sallescope.preferences.v2" }),
   acceptedImageTypes: Object.freeze(["image/jpeg", "image/png", "image/webp"])

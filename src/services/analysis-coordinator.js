@@ -1,5 +1,5 @@
 import { ANALYSIS_STATUS, DEFAULTS, MODEL_STATUS } from "../config/defaults.js";
-import { getIntrinsicSize } from "./source-resolution.js";
+import { createSourceRecord, getSourceMetadata, releaseSource } from "./source-record.js";
 
 export function createThresholdReanalysis(retry, delayMilliseconds) {
   let timeoutId = null;
@@ -20,56 +20,118 @@ export function createThresholdReanalysis(retry, delayMilliseconds) {
 
 export function createAnalysisCoordinator({ store, modelService, onComplete, onError }) {
   let currentSource = null;
-  let activePromise = null;
+  let activeJob = null;
+  let pendingLatestJob = null;
+  let requestId = 0;
+  let sourceVersion = 0;
 
-  async function processQueue() {
-    if (activePromise) return activePromise;
-    const state = store.getState();
-    if (!currentSource || state.modelStatus !== MODEL_STATUS.READY || state.analysisStatus !== ANALYSIS_STATUS.QUEUED) return null;
-
-    const revision = state.sourceRevision;
-    const source = currentSource;
-    const threshold = state.confidenceThreshold;
-    const sourceSize = getIntrinsicSize(source);
-    if (!store.startAnalysis(revision)) return null;
-    const startedAt = performance.now();
-
-    activePromise = modelService.detect(source, threshold)
-      .then((detections) => {
-        const metadata = {
-          completedAt: new Date().toISOString(),
-          inputMode: store.getState().inputMode,
-          confidenceThreshold: threshold,
-          sourceWidth: sourceSize.width,
-          sourceHeight: sourceSize.height,
-          inferenceMilliseconds: Math.round(performance.now() - startedAt),
-          model: DEFAULTS.model.label
-        };
-        if (store.completeAnalysis(revision, detections, metadata)) onComplete({ source, detections });
-      })
-      .catch((error) => {
-        if (store.failAnalysis(revision)) onError(error);
-      })
-      .finally(() => {
-        activePromise = null;
-        if (store.getState().analysisStatus === ANALYSIS_STATUS.QUEUED) void processQueue();
-      });
-
-    return activePromise;
+  function jobSummary(job) {
+    return {
+      requestId: job.requestId,
+      sourceId: job.source.sourceId,
+      sourceVersion: job.source.sourceVersion,
+      detectorId: job.detectorId,
+      threshold: job.threshold
+    };
   }
 
-  function setSource(source, inputMode) {
-    currentSource = source;
-    store.queueVisualSource(inputMode);
+  function createJob(source) {
+    requestId += 1;
+    return {
+      requestId,
+      source,
+      detectorId: modelService.getDetectorId?.() ?? DEFAULTS.model.id,
+      threshold: store.getState().confidenceThreshold,
+      stale: false,
+      promise: null
+    };
+  }
+
+  function replacePending(job) {
+    if (pendingLatestJob && pendingLatestJob.source !== currentSource && pendingLatestJob.source !== activeJob?.source) {
+      releaseSource(pendingLatestJob.source);
+    }
+    pendingLatestJob = job;
+  }
+
+  async function processQueue() {
+    if (activeJob) return activeJob.promise;
+    const state = store.getState();
+    if (!pendingLatestJob || state.modelStatus !== MODEL_STATUS.READY || state.analysisStatus !== ANALYSIS_STATUS.QUEUED) return null;
+
+    const job = pendingLatestJob;
+    pendingLatestJob = null;
+    const summary = jobSummary(job);
+    if (!store.startAnalysis(summary)) return null;
+    activeJob = job;
+    const startedAt = performance.now();
+
+    job.promise = modelService.detect(job.source.asset, {
+      threshold: job.threshold,
+      sourceId: job.source.sourceId
+    })
+      .then((detections) => {
+        const model = modelService.getMetadata?.() ?? { id: DEFAULTS.model.id, label: DEFAULTS.model.label, backend: "unknown" };
+        const metadata = {
+          completedAt: new Date().toISOString(),
+          inputMode: job.source.type,
+          sourceId: job.source.sourceId,
+          sourceVersion: job.source.sourceVersion,
+          requestId: job.requestId,
+          confidenceThreshold: job.threshold,
+          sourceWidth: job.source.width,
+          sourceHeight: job.source.height,
+          inferenceMilliseconds: Math.round(performance.now() - startedAt),
+          model: model.label,
+          modelId: model.id,
+          runtimeBackend: model.backend
+        };
+        if (store.completeAnalysis(summary, detections, metadata)) {
+          onComplete({ source: job.source, detections, requestId: job.requestId });
+        } else store.noteStaleResult(summary);
+      })
+      .catch((error) => {
+        if (store.failAnalysis(summary)) onError(error);
+        else store.noteStaleResult(summary);
+      })
+      .finally(() => {
+        if (job.source !== currentSource) releaseSource(job.source);
+        activeJob = null;
+        if (pendingLatestJob) void processQueue();
+      });
+
+    return job.promise;
+  }
+
+  function setSource(asset, inputMode) {
+    const previousSource = currentSource;
+    sourceVersion += 1;
+    currentSource = createSourceRecord(asset, inputMode, sourceVersion);
+    if (activeJob) activeJob.stale = true;
+    const job = createJob(currentSource);
+    replacePending(job);
+    store.queueVisualSource(getSourceMetadata(currentSource), jobSummary(job));
+    if (previousSource && previousSource !== activeJob?.source && previousSource !== pendingLatestJob?.source) {
+      releaseSource(previousSource);
+    }
     void processQueue();
+    return currentSource;
   }
 
   function retry() {
-    if (!currentSource || !store.queueCurrentAnalysis()) return null;
+    if (!currentSource) return null;
+    if (activeJob) activeJob.stale = true;
+    const job = createJob(currentSource);
+    replacePending(job);
+    if (!store.queueCurrentAnalysis(jobSummary(job))) return null;
     return processQueue();
   }
 
   function reset() {
+    if (activeJob) activeJob.stale = true;
+    if (pendingLatestJob && pendingLatestJob.source !== activeJob?.source) releaseSource(pendingLatestJob.source);
+    if (currentSource && currentSource !== activeJob?.source) releaseSource(currentSource);
+    pendingLatestJob = null;
     currentSource = null;
     store.resetAnalysis();
   }
@@ -80,6 +142,8 @@ export function createAnalysisCoordinator({ store, modelService, onComplete, onE
     retry,
     reset,
     getSource: () => currentSource,
-    hasSource: () => Boolean(currentSource)
+    hasSource: () => Boolean(currentSource),
+    getActiveJob: () => activeJob && jobSummary(activeJob),
+    getPendingJob: () => pendingLatestJob && jobSummary(pendingLatestJob)
   };
 }

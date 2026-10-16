@@ -15,6 +15,11 @@
   object-fit: contain;
 }
 
+.visual-stage .detection-overlay {
+  z-index: 2;
+  pointer-events: none;
+}
+
 .empty-visual { position: relative; z-index: 1; }
 .analysis-overlay { z-index: 3; }
 

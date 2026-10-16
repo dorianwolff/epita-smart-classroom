@@ -28,7 +28,7 @@
           <span><strong>SalleScope</strong><small>EPITA Smart Classroom</small></span>
         </a>
         <div class="header-status">
-          <span id="model-status" class="status-pill status-loading" aria-live="polite">Chargement du modèle de détection précise…</span>
+          <span id="model-status" class="status-pill status-loading" aria-live="polite">Chargement du modèle local…</span>
           <span class="privacy-mini">Analyse locale · aucune image envoyée</span>
         </div>
       </div>
@@ -80,6 +80,7 @@
             <div id="visual-stage" class="visual-stage is-empty">
               <video id="camera-preview" playsinline muted hidden aria-label="Aperçu de la caméra"></video>
               <canvas id="detection-canvas" hidden>Visualisation de l’image analysée et des objets détectés.</canvas>
+              <canvas id="detection-overlay" class="detection-overlay" hidden aria-hidden="true"></canvas>
               <div id="empty-visual" class="empty-visual">
                 <span class="empty-icon" aria-hidden="true">⌗</span>
                 <strong>Aucune image sélectionnée</strong>

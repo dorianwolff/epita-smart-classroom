@@ -22,7 +22,7 @@ Reconnaissance ou suivi des personnes, vidéo continue, identification biométri
 
 ## Architecture
 
-`main.js` assemble le store, les services et le contrôleur UI. `categories.js` porte toutes les règles de catégorie et l’exemple EPITA. `model-service.js` est la frontière de confidentialité et retourne toutes les prédictions sûres, mappées ou non. `source-resolution.js` centralise les dimensions intrinsèques et le redimensionnement sans agrandissement. `analysis-coordinator.js` sérialise l’inférence, invalide les sources obsolètes, temporise les changements de seuil et conserve la source éphémère hors du store. `audit-engine.js` est une fonction pure ; toutes les représentations consomment son résultat canonique. Les vues ne réalisent aucun calcul métier.
+`main.js` assemble le store, les services et le contrôleur UI. `categories.js` porte toutes les règles de catégorie et l’exemple EPITA. `detection/adapters/coco-detector.js` encapsule TensorFlow.js ; `prediction-normalizer.js` produit le contrat interne unique et `privacy-filter.js` retire les étiquettes privées avant l’état. `source-record.js` attribue une identité immuable. `analysis-coordinator.js` sérialise une tâche active et une seule tâche en attente, avec validation stricte de `sourceId`, `sourceVersion` et `requestId`. `audit-engine.js` est pur ; toutes les vues consomment ses résultats.
 
 Le traitement suit ce flux : source éphémère → file locale révisée → disponibilité du modèle → inférence locale → suppression immédiate de `person` → état sûr → moteur de détection libre ou d’audit configuré → vues et rapport. `localStorage` ne reçoit que les préférences numériques.
 
@@ -40,11 +40,14 @@ Le traitement suit ce flux : source éphémère → file locale révisée → di
 | B08 | Rapport d’audit imprimable | P1 | Terminé |
 | B09 | Responsive 375/768/1440 px et accessibilité | P1 | Terminé |
 | B10 | Tests automatisés du domaine et de la confidentialité | P0 | Terminé |
-| B11 | Recette avec le corpus d’images autorisé | P0 | À faire |
+| B11 | Recette comparative COCO/DETR avec corpus annoté autorisé | P0 | Bloqué : corpus absent |
 | B12 | Déploiement et recette caméra sur Cloudflare Pages | P0 | À faire |
 | B13 | Modes Détection libre / Audit configuré | P0 | Terminé |
 | B14 | Capture indépendante et file d’analyse sûre | P0 | Terminé |
 | B15 | Diagnostic qualité, modèle précis et réanalyse temporisée | P0 | Terminé |
+| B16 | Identité de source et coordination dernière image gagnante | P0 | Terminé |
+| B17 | Abstraction, normalisation et confidentialité multi-adaptateur | P0 | Terminé pour COCO |
+| B18 | Évaluation DETR et OWL-ViT | P0 | Non livrée sans mesures |
 
 ## KPI
 
@@ -100,7 +103,7 @@ Les causes principales étaient donc le couple modèle rapide / seuil élevé et
 | Paramètre | Après |
 |---|---|
 | Modèle | `mobilenet_v2` unique, chargé seul |
-| Libellé de chargement | « Chargement du modèle de détection précise… » |
+| Libellé de chargement | « Chargement du modèle local… » |
 | Seuil | 0,40 par défaut ; plage 0,25–0,85 ; pas de 0,05 |
 | Réanalyse | Temporisation de 350 ms, file sérialisée, source courante conservée |
 | Import | Orientation fournie par le navigateur, grand côté limité à 1600 px |
@@ -159,3 +162,54 @@ COCO-SSD ne vérifie ni tableaux ni fenêtres. Ses classes `dining table` et `tv
 ## Déploiement
 
 Le dépôt est directement publiable sur Cloudflare Pages : aucune commande de build, sortie à la racine, aucune variable d’environnement. Après connexion GitHub, la recette finale doit renseigner l’URL publique, vérifier le chargement des fichiers statiques et tester la caméra sur HTTPS. Tant que ce déploiement n’a pas été réalisé, les lignes 14 et 15 du plan de test restent explicitement ouvertes.
+
+## Note d’implémentation — remplacement d’image
+
+### Reproduction et cause
+
+Le scénario A → B contrôlé n’écrivait pas systématiquement A sur B dans la version inspectée : le compteur `sourceRevision` bloquait déjà plusieurs écritures tardives. Il serait donc inexact de prétendre avoir reproduit cet écrasement à chaque passage. En revanche, l’audit a reproduit un défaut certain : après un import réussi, la valeur du champ fichier restait renseignée et la sélection du même fichier ne déclenchait plus `change`, donnant l’impression que l’application était bloquée jusqu’au rechargement ou au choix d’un autre fichier.
+
+La cause structurelle était plus large : l’identité d’une source, l’identité d’une requête et le détecteur n’étaient pas représentés ensemble. Le coordinateur détenait une source brute et une promesse active, tandis que le store ne connaissait qu’une révision numérique. Ce contrat ne suffisait pas pour prouver qu’un résultat de changement de seuil ou de futur changement de détecteur appartenait encore à l’image visible. Le même canvas mélangeait en outre aperçu et boîtes, et la remise à zéro du rapport dépendait indirectement d’un recalcul UI.
+
+### Correction
+
+Chaque import ou capture crée désormais un enregistrement immuable `{ sourceId, sourceVersion, type, width, height, createdAt, status, asset }`. Seules les métadonnées entrent dans le store. Chaque tâche capture son propre asset, un `requestId`, le détecteur et le seuil. Une tâche active n’est jamais annulée de manière non sûre ; elle devient obsolète, la file ne garde que la dernière demande et son résultat est ignoré sauf concordance exacte des trois identifiants.
+
+Le remplacement efface immédiatement détections, audit, métadonnées du rapport et overlay. Le champ fichier est vidé avant le décodage. Un import invalide conserve la dernière source valide. La caméra est mise en pause après capture pour permettre une reprise rapide, puis toutes ses pistes sont arrêtées lors d’un import réussi, d’un arrêt ou d’une réinitialisation.
+
+## Architecture du détecteur et décision modèle
+
+Le reste de l’application ne consomme plus les objets TensorFlow.js. Chaque prédiction sûre est normalisée sous la forme `{ id, sourceId, modelId, rawLabel, categoryId, displayLabel, score, bbox, experimental }`. Le filtre défensif de confidentialité s’exécute entre l’adaptateur et le store.
+
+Le détecteur principal livré reste COCO-SSD `mobilenet_v2` au seuil 0,40. Ce n’est pas un mode de secours déguisé : faute de corpus annoté conservé, DETR ne peut pas être promu honnêtement et aucun sélecteur « Précis/Rapide » n’est affiché. OWL-ViT et le mode étendu sont également absents. Les valeurs mesurées, tailles, révisions candidates Apache-2.0 et protocole requis figurent dans [BENCHMARK.md](./BENCHMARK.md).
+
+Le backend effectif de TensorFlow.js est consigné dans chaque rapport. La version actuelle n’exige ni WebGPU ni WASM. Si un adaptateur Transformers.js est validé plus tard, il devra fonctionner dans un Worker, publier le vrai `progress_callback`, préférer WebGPU seulement après test et retomber explicitement sur WASM.
+
+## Vérifications du 16/10/2026
+
+- 28 tests Node déterministes réussis après correction.
+- Courses couvertes : A→B, A→B→C, échec obsolète, deux seuils successifs, changement de détecteur, reset pendant inférence.
+- Import couvert : même fichier deux fois et révocation d’URL exactement une fois après copie.
+- Confidentialité couverte pour `person`, `human`, `student`, `teacher`, `face`, `man`, `woman`, `boy`, `girl`.
+- Chrome local : modèle prêt, remplacement par une source portrait 480×640, aperçu et overlay 480×640 alignés, rapport reconstruit pour la bonne source.
+- Largeurs Chrome 375, 768 et 1440 px : `scrollWidth === clientWidth` dans les trois cas.
+- Caméra factice Chrome : caméra → capture 1600×900 → import 320×240 → nouvelle capture 1600×900 ; stream conservé en pause après capture et arrêté lors de l’import.
+- Chargement à froid observé sur un profil Chrome neuf : environ 5,8 s pour les poids COCO-SSD. Taille statique vérifiée par en-têtes du dépôt TensorFlow : 67 771 262 octets.
+- Compatibilité statique : serveur HTTP sans build, sans Worker, sans fonction et sans variable d’environnement. `_headers` conserve `camera=(self)` et `microphone=()` ; aucune origine Transformers/Hugging Face n’est nécessaire puisque ces modèles ne sont pas livrés.
+
+## Recette manuelle sur Cloudflare Pages
+
+Le dépôt ne contient pas encore d’URL Cloudflare publique. Après déploiement statique, remplacer `<URL_CLOUDFLARE>` ci-dessous par l’URL HTTPS réelle :
+
+1. ouvrir `<URL_CLOUDFLARE>` dans une fenêtre privée de Chrome et attendre « Modèle prêt » ; vérifier dans Réseau qu’aucune image n’est envoyée ;
+2. importer une image A autorisée, puis pendant « Analyse locale en cours… » importer B ; vérifier que B apparaît immédiatement, que les anciennes boîtes/rapport disparaissent et que seul le rapport aux dimensions de B revient ;
+3. recommencer A→B→C avant la fin de A ; vérifier que B n’est jamais analysée et que C gagne ;
+4. sélectionner deux fois de suite le même fichier ; vérifier que les deux sélections lancent une analyse ;
+5. déplacer rapidement le seuil deux fois pendant une analyse ; vérifier qu’un seul résultat final correspond au dernier seuil ;
+6. lancer la caméra, capturer, choisir « Reprendre », recapturer, puis importer une image ; vérifier que l’indicateur caméra s’éteint après import ;
+7. faire l’ordre inverse import → caméra → capture ; vérifier que l’overlay de l’import disparaît ;
+8. pendant une analyse, cliquer « Recommencer » ; vérifier qu’aucun résultat tardif ne repeuple la page ;
+9. utiliser une fixture autorisée contenant une personne ; inspecter résultats, rapport et console : aucune étiquette privée ne doit apparaître ;
+10. répéter avec une source portrait et paysage à 375, 768 et 1440 px ; vérifier l’alignement des boîtes et l’absence de défilement horizontal ;
+11. couper le réseau après un premier chargement mis en cache, recharger et noter le comportement réel du cache ; ne pas conclure à un support hors ligne sans ce test ;
+12. imprimer le rapport en PDF et vérifier qu’aucune image source n’y figure.

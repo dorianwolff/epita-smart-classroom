@@ -49,5 +49,16 @@ export function createCameraService() {
     if (videoElement) videoElement.srcObject = null;
   }
 
-  return { start, capture, stop, isActive: () => Boolean(stream) };
+  function pause(videoElement) {
+    videoElement?.pause?.();
+  }
+
+  async function resume(videoElement) {
+    if (!stream) return start(videoElement);
+    videoElement.srcObject = stream;
+    await videoElement.play();
+    return stream;
+  }
+
+  return { start, capture, stop, pause, resume, isActive: () => Boolean(stream) };
 }

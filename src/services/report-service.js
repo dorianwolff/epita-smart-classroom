@@ -49,6 +49,7 @@ export function renderReport(container, state) {
     `Méthode d’entrée : ${formatInputMode(auditMetadata.inputMode)}`,
     `Source analysée : ${auditMetadata.sourceWidth} × ${auditMetadata.sourceHeight} px`,
     `Modèle : ${auditMetadata.model}`,
+    `Moteur d’exécution : ${auditMetadata.runtimeBackend}`,
     `Temps d’inférence mesuré : ${auditMetadata.inferenceMilliseconds} ms`,
     `Seuil de confiance : ${Math.round(auditMetadata.confidenceThreshold * 100)} %`,
     `Mode : ${configured ? "Audit configuré" : "Détection libre"}`,

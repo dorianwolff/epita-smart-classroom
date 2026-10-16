@@ -11,7 +11,9 @@ SalleScope est une application web statique de détection et d’audit de salle 
 - Détection réelle dans le navigateur avec boîtes, libellés français et scores de confiance.
 - Détection libre par défaut, sans quantité fictive ni conclusion d’absence.
 - Audit configuré optionnel avec référence vide, personnalisable ou exemple EPITA explicitement fictif.
-- Capture et aperçu disponibles pendant le chargement du modèle, avec analyse automatique de la photo la plus récente.
+- Capture et aperçu disponibles pendant le chargement du modèle, avec coordination sérialisée « dernière image gagnante ».
+- Remplacement possible avant, pendant ou après une analyse : identité immuable par source, résultat obsolète ignoré et rapport immédiatement invalidé.
+- Réutilisation du même fichier grâce à la remise à zéro immédiate du sélecteur.
 - Suppression immédiate de toute prédiction `person` avant l’état, l’affichage et les calculs.
 - Comptage des chaises, tables/bureaux, ordinateurs portables et écrans.
 - Marquage honnête des tableaux et fenêtres comme non vérifiables.
@@ -21,24 +23,29 @@ SalleScope est une application web statique de détection et d’audit de salle 
 - Rapport complet imprimable ou enregistrable en PDF par le navigateur.
 - Interface accessible et responsive de 375 px au grand écran.
 
-## Technologies et coût
+## Détecteur livré, coût et candidats évalués
 
 L’application utilise uniquement HTML, CSS, JavaScript ES modules et les API du navigateur. Les seules dépendances distantes, épinglées dans `index.html`, sont :
 
 - `@tensorflow/tfjs@4.22.0`
 - `@tensorflow-models/coco-ssd@2.2.3` avec `mobilenet_v2`
 
-Il n’y a aucun backend, compte, secret, service payant, appel d’IA générative ou base de données. L’hébergement statique Cloudflare Pages et l’inférence locale permettent un usage sans coût additionnel.
+Le seul détecteur livré est `COCO-SSD / mobilenet_v2`, au seuil initial de 0,40. Son manifeste et ses 17 fragments représentent 67 771 262 octets (environ 67,8 Mo décimaux). Il n’y a aucun backend, compte, secret, service payant, appel d’IA générative ou base de données.
+
+DETR (`Xenova/detr-resnet-50`, q8 ≈ 43,1 Mo) et OWL-ViT (`Xenova/owlvit-base-patch32`, q8 ≈ 155 Mo hors tokenizer) ont été examinés comme candidats, mais ne sont pas livrés : le dépôt ne contient pas le corpus annoté autorisé permettant de mesurer leur exactitude sans fabriquer de résultats. Transformers.js n’est donc pas une dépendance de production. La décision, les révisions candidates, licences Apache-2.0 et images encore nécessaires sont détaillées dans [BENCHMARK.md](./BENCHMARK.md).
 
 ## Architecture
 
-La configuration des catégories est l’unique source de vérité, y compris pour l’exemple EPITA. Le service de modèle filtre les personnes avant de retourner ses données, sans supprimer les autres classes sûres. Le store sépare le mode, l’état du modèle, la disponibilité de la source et l’état d’analyse. Le coordinateur d’analyse conserve uniquement la source visuelle éphémère la plus récente, temporise les changements de seuil et protège contre les inférences dupliquées ou obsolètes. Le moteur d’audit pur utilise le mapping uniquement pour la comparaison configurée ; les autres objets sûrs restent visibles.
+La configuration des catégories est l’unique source de vérité. L’adaptateur COCO normalise chaque résultat, puis le filtre de confidentialité supprime toute étiquette de personne avant l’état partagé. Le store conserve uniquement les métadonnées immuables de la source et de la requête courantes. Le coordinateur possède au plus une inférence active et une requête en attente ; toute nouvelle source, seuil ou sélection de détecteur remplace la requête en attente. Une écriture n’est acceptée que si `sourceId`, `sourceVersion` et `requestId` correspondent encore.
+
+L’image d’inférence, l’aperçu et l’overlay sont trois surfaces distinctes. Une source remplacée ne peut donc ni recevoir d’anciennes boîtes ni réactiver un ancien rapport. Les ressources d’une tâche obsolète sont libérées après sa fin sûre.
 
 ```text
 SalleScope/
 ├── index.html
 ├── README.md
 ├── PROJECT.md
+├── BENCHMARK.md
 ├── _headers
 ├── assets/{favicon.svg,README.md}
 ├── styles/
@@ -52,6 +59,8 @@ SalleScope/
 ├── src/
 │   ├── main.js
 │   ├── config/{categories,coco-labels,defaults}.js
+│   ├── detection/{detector-registry,privacy-filter,prediction-normalizer}.js
+│   ├── detection/adapters/coco-detector.js
 │   ├── state/store.js
 │   ├── services/{model,camera,image,report}-service.js
 │   ├── services/{analysis-coordinator,source-resolution}.js
@@ -62,7 +71,9 @@ SalleScope/
     ├── audit-engine.test.mjs
     ├── state-and-queue.test.mjs
     ├── source-pipeline.test.mjs
-    └── model-privacy.test.mjs
+    ├── model-privacy.test.mjs
+    ├── latest-image-wins.test.mjs
+    └── upload-lifecycle.test.mjs
 ```
 
 ## Lancement local
@@ -98,7 +109,7 @@ Les règles `_headers` désactivent explicitement le microphone et autorisent un
 
 Les images, trames caméra, prédictions et résultats ne sont envoyés à aucune API. Les URL d’objet d’images importées sont révoquées après décodage. Les trames ne sont pas persistées. Seuls le seuil et les nombres attendus peuvent être enregistrés dans `localStorage`. Les pistes caméra sont arrêtées à l’arrêt, à la réinitialisation, après capture et à la fermeture de la page.
 
-Une prédiction `person` éventuellement produite en mémoire par COCO-SSD est supprimée dans la portée locale de `model-service.js`. Elle n’est ni retournée, ni stockée, ni dessinée, ni comptée, ni journalisée, ni incluse dans le rapport.
+Une prédiction dont l’étiquette est `person`, `human`, `student`, `teacher`, `face`, `man`, `woman`, `boy` ou `girl` est supprimée par `privacy-filter.js` juste après l’adaptateur. Elle n’est ni stockée, ni dessinée, ni comptée, ni journalisée, ni incluse dans le rapport.
 
 ## Limites connues
 
@@ -110,8 +121,8 @@ Une prédiction `person` éventuellement produite en mémoire par COCO-SSD est s
 - Un objet non détecté ne doit jamais être considéré comme absent sans contrôle humain.
 - Le premier chargement du modèle requiert un accès réseau aux fichiers statiques de jsDelivr.
 
-Le benchmark local du 16/10/2026 a mesuré environ 6,4 s de chargement et 1,6 s d’inférence moyenne pour `mobilenet_v2`, contre 2,0 s et 0,9 s pour `lite_mobilenet_v2`. Le modèle précis a retrouvé davantage de chaises et renforcé les scores du portable et du moniteur, mais n’a pas rendu les tables distantes fiables. Les fixtures, scores et limites mesurées sont consignés dans [PROJECT.md](./PROJECT.md).
+Le diagnostic local du 16/10/2026 a mesuré 5,8 à 6,4 s de chargement à froid et 1,626 s d’inférence moyenne sur quatre fixtures temporaires pour `mobilenet_v2`. Ces fixtures n’étant pas conservées avec annotations, aucune précision/rappel/F1 n’est revendiquée. Voir [BENCHMARK.md](./BENCHMARK.md).
 
 ## Compatibilité et tests manuels
 
-Utiliser une version récente de Chrome, Edge, Firefox ou Safari avec JavaScript activé. Safari/iOS peut demander une interaction avant l’activation de la caméra. Vérifier au minimum : import avant et après disponibilité du modèle, remplacement d’une photo en attente, détection libre, audit configuré, exemple EPITA, seuil, refus caméra, présence d’une personne, largeurs 375/768/1440 px et aperçu avant impression. Le protocole exhaustif et les résultats sont dans [PROJECT.md](./PROJECT.md).
+Utiliser une version récente de Chrome, Edge, Firefox ou Safari avec JavaScript activé. WebGPU n’est pas requis par la version livrée. Safari/iOS peut demander une interaction avant la caméra. Le protocole Cloudflare et les résultats de remplacement/caméra sont dans [PROJECT.md](./PROJECT.md).

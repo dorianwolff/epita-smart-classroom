@@ -2,11 +2,11 @@ import { CATEGORIES } from "../config/categories.js";
 import { DEFAULTS, INPUT_MODE, MODEL_STATUS } from "../config/defaults.js";
 import { calculateAudit } from "../domain/audit-engine.js";
 import { createAnalysisCoordinator, createThresholdReanalysis } from "../services/analysis-coordinator.js";
-import { createImageSource } from "../services/image-service.js";
+import { createImageSource, takeSelectedFile } from "../services/image-service.js";
 import { printReport } from "../services/report-service.js";
 import { getElement } from "../utils/dom.js";
 import { AppError, getErrorContent, safeLog } from "../utils/errors.js";
-import { clearCanvas, renderCanvas } from "./canvas-renderer.js";
+import { clearCanvas, renderCanvas, renderOverlay } from "./canvas-renderer.js";
 import { renderConfiguration } from "./configuration-view.js";
 import { renderApplicationState } from "./application-view.js";
 
@@ -30,7 +30,7 @@ export class UiController {
   }
 
   getElements() {
-    const ids = ["model-status", "camera-preview", "detection-canvas", "empty-visual", "analysis-overlay",
+    const ids = ["model-status", "camera-preview", "detection-canvas", "detection-overlay", "empty-visual", "analysis-overlay",
       "start-camera", "retake-photo", "capture", "stop-camera", "stage-upload-label", "image-upload", "hero-upload", "analyse-upload",
       "reset-audit", "confidence", "confidence-value", "app-error", "error-title", "error-message",
       "error-action", "analysis-status", "capture-guidance", "configuration-section", "configuration-label", "configuration-grid",
@@ -91,17 +91,16 @@ export class UiController {
   }
 
   async handleUpload(event) {
-    const [file] = event.target.files;
+    const file = takeSelectedFile(event.target);
     if (!file) return;
     const intent = ++this.sourceIntent;
     try {
-      this.stopCamera();
       const source = await createImageSource(file);
       if (intent !== this.sourceIntent) return;
+      this.stopCamera();
       this.queueSource(source, INPUT_MODE.UPLOAD);
     } catch (error) {
       if (intent !== this.sourceIntent) return;
-      event.target.value = "";
       this.showError(error);
     }
   }
@@ -109,9 +108,11 @@ export class UiController {
   async startCamera() {
     this.thresholdReanalysis.cancel();
     try {
-      await this.cameraService.start(this.elements.camera_preview);
+      if (this.cameraService.isActive()) await this.cameraService.resume(this.elements.camera_preview);
+      else await this.cameraService.start(this.elements.camera_preview);
       this.elements.camera_preview.hidden = false;
       this.elements.detection_canvas.hidden = true;
+      this.elements.detection_overlay.hidden = true;
       this.elements.empty_visual.hidden = true;
       this.store.update({ cameraStatus: "active", error: null });
     } catch (error) {
@@ -131,7 +132,8 @@ export class UiController {
     try {
       const source = this.cameraService.capture(this.elements.camera_preview);
       this.sourceIntent += 1;
-      this.stopCamera();
+      this.cameraService.pause(this.elements.camera_preview);
+      this.store.update({ cameraStatus: "paused" });
       this.queueSource(source, INPUT_MODE.CAMERA);
     } catch (error) {
       this.showError(error);
@@ -141,6 +143,7 @@ export class UiController {
   queueSource(source, inputMode) {
     this.thresholdReanalysis.cancel();
     renderCanvas(this.elements.detection_canvas, source);
+    clearCanvas(this.elements.detection_overlay);
     this.showCanvas();
     this.analysis.setSource(source, inputMode);
     this.recalculateAudit();
@@ -148,7 +151,9 @@ export class UiController {
 
   handleAnalysisComplete({ source, detections }) {
     this.recalculateAudit();
-    renderCanvas(this.elements.detection_canvas, source, detections);
+    if (source.sourceId === this.store.getState().currentSource?.sourceId) {
+      renderOverlay(this.elements.detection_overlay, source.asset, detections);
+    }
     if (!detections.length) {
       this.showError(new AppError("NO_SAFE_OBJECTS"));
     }
@@ -202,6 +207,7 @@ export class UiController {
     this.analysis.reset();
     this.elements.image_upload.value = "";
     clearCanvas(this.elements.detection_canvas);
+    clearCanvas(this.elements.detection_overlay);
     this.showEmpty();
     this.recalculateAudit();
   }
@@ -224,12 +230,14 @@ export class UiController {
   showCanvas() {
     this.elements.camera_preview.hidden = true;
     this.elements.detection_canvas.hidden = false;
+    this.elements.detection_overlay.hidden = false;
     this.elements.empty_visual.hidden = true;
   }
 
   showEmpty() {
     this.elements.camera_preview.hidden = true;
     this.elements.detection_canvas.hidden = true;
+    this.elements.detection_overlay.hidden = true;
     this.elements.empty_visual.hidden = false;
   }
 

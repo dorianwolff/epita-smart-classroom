@@ -21,7 +21,7 @@ function createHarness() {
   const modelService = {
     async detect(source) {
       calls.push(source);
-      return [{ className: "chair", score: 0.9, bbox: [0, 0, 1, 1] }];
+      return [{ rawLabel: "chair", score: 0.9, bbox: { x: 0, y: 0, width: 1, height: 1 } }];
     }
   };
   const coordinator = createAnalysisCoordinator({
@@ -32,6 +32,36 @@ function createHarness() {
   });
   return { store, calls, coordinator };
 }
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+test("a selected source receives immutable identity and request metadata", () => {
+  const { store, coordinator } = createHarness();
+  coordinator.setSource({ width: 20, height: 10 }, INPUT_MODE.UPLOAD);
+  const source = coordinator.getSource();
+  assert.equal(typeof source.sourceId, "string");
+  assert.equal(source.sourceVersion, 1);
+  assert.equal(source.type, INPUT_MODE.UPLOAD);
+  assert.deepEqual(store.getState().currentSource, {
+    sourceId: source.sourceId,
+    sourceVersion: 1,
+    type: INPUT_MODE.UPLOAD,
+    width: 20,
+    height: 10,
+    createdAt: source.createdAt,
+    status: "ready"
+  });
+  assert.equal(typeof store.getState().currentAnalysis.requestId, "number");
+  assert.ok(Object.isFrozen(source));
+});
 
 test("EPITA example is explicit and the default mode is free", () => {
   installStorage();
@@ -83,7 +113,7 @@ test("model failure retains the local preview and queued state", () => {
   store.setModelStatus(MODEL_STATUS.ERROR);
   assert.equal(store.getState().hasVisualSource, true);
   assert.equal(store.getState().analysisStatus, ANALYSIS_STATUS.QUEUED);
-  assert.equal(coordinator.getSource(), "retained-photo");
+  assert.equal(coordinator.getSource().asset, "retained-photo");
 });
 
 test("a queued photo announces automatic analysis while the model loads", () => {
@@ -94,7 +124,7 @@ test("a queued photo announces automatic analysis while the model loads", () => 
     modelStatus: MODEL_STATUS.LOADING,
     hasVisualSource: true
   });
-  assert.equal(element.textContent, "Photo prête. L’analyse démarrera automatiquement.");
+  assert.equal(element.textContent, "Image prête. Modèle en cours de chargement.");
 });
 
 test("threshold changes trigger one controlled reanalysis after debouncing", async () => {
