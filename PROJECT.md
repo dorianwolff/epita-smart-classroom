@@ -22,9 +22,9 @@ Reconnaissance ou suivi des personnes, vidéo continue, identification biométri
 
 ## Architecture
 
-`main.js` assemble trois éléments : store, services et contrôleur UI. `categories.js` porte toutes les règles de catégorie. `model-service.js` est la frontière de confidentialité et retourne exclusivement des prédictions sûres. `audit-engine.js` est une fonction pure ; toutes les représentations consomment son résultat canonique. Les vues ne réalisent aucun calcul métier. Le rapport est du HTML dédié à l’impression navigateur.
+`main.js` assemble le store, les services et le contrôleur UI. `categories.js` porte toutes les règles de catégorie et l’exemple EPITA. `model-service.js` est la frontière de confidentialité et retourne exclusivement des prédictions sûres. `analysis-coordinator.js` sérialise l’inférence, invalide les sources obsolètes et conserve la source éphémère hors du store. `audit-engine.js` est une fonction pure ; toutes les représentations consomment son résultat canonique. Les vues ne réalisent aucun calcul métier.
 
-Le traitement suit ce flux : source éphémère → redimensionnement → inférence locale → suppression immédiate de `person` → état sûr → moteur d’audit → vues et rapport. `localStorage` ne reçoit que les préférences numériques.
+Le traitement suit ce flux : source éphémère → file locale révisée → disponibilité du modèle → inférence locale → suppression immédiate de `person` → état sûr → moteur de détection libre ou d’audit configuré → vues et rapport. `localStorage` ne reçoit que les préférences numériques.
 
 ## Backlog
 
@@ -42,6 +42,8 @@ Le traitement suit ce flux : source éphémère → redimensionnement → infér
 | B10 | Tests automatisés du domaine et de la confidentialité | P0 | Terminé |
 | B11 | Recette avec le corpus d’images autorisé | P0 | À faire |
 | B12 | Déploiement et recette caméra sur Cloudflare Pages | P0 | À faire |
+| B13 | Modes Détection libre / Audit configuré | P0 | Terminé |
+| B14 | Capture indépendante et file d’analyse sûre | P0 | Terminé |
 
 ## KPI
 
@@ -61,9 +63,9 @@ Aucune valeur de performance ou de précision n’est fabriquée avant l’exéc
 | 3 | Image sans équipement pris en charge | Message explicite, autres objets éventuels conservés | Réussi le 16/10/2026 sur l’image de confidentialité : message dédié et aucun faux résultat sûr |
 | 4 | Permission caméra refusée | Erreur française et alternative d’import | À tester manuellement |
 | 5 | Aucune caméra | Erreur dédiée et alternative d’import | À tester sur appareil adapté |
-| 6 | Échec de chargement du modèle | Statut indisponible et bouton Réessayer | À tester hors ligne / blocage CDN |
+| 6 | Échec de chargement du modèle | Photo conservée, statut indisponible et nouvelle tentative | Réussi le 16/10/2026 : requête modèle interrompue, aperçu conservé, retry puis analyse automatique |
 | 7 | Modification du seuil | Nouvelle analyse avec seuil courant et résultats mis à jour | Réussi le 16/10/2026 : réanalyse à 70 % et seuil mis à jour dans le rapport |
-| 8 | Modification de la configuration | Comparaison, synthèse et rapport recalculés sans inférence | Réussi le 16/10/2026 : chaises réglées à 4, statut passé à « Vérifié », puis valeur restaurée |
+| 8 | Modification de la configuration | Modes et référence recalculés sans inférence | Réussi le 16/10/2026 : libre sans écarts, configuré vide insuffisant, exemple EPITA chargé puis réinitialisé |
 | 9 | Personne visible | Aucune boîte, quantité, ligne, trace brute ou entrée rapport `person` | Réussi le 16/10/2026 : 5 prédictions brutes de personne dans la fixture, 0 résultat UI/rapport ; test unitaire réussi |
 | 10 | Mobile 375 px | Une colonne, actions 48 px, cartes de comparaison, aucun débordement | Réussi le 16/10/2026 : largeur de document 375 px, action principale 50,625 px |
 | 11 | Tablette 768 px | Mise en page lisible et sans débordement | Réussi le 16/10/2026 : largeur de document 768 px et colonne de 736 px |

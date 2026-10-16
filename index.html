@@ -55,9 +55,9 @@
 
       <nav class="workflow shell" aria-label="Étapes de l’audit">
         <ol>
-          <li class="is-active"><span>1</span>Préparer</li>
-          <li><span>2</span>Analyser</li>
-          <li><span>3</span>Vérifier</li>
+          <li class="is-active"><span>1</span>Choisir</li>
+          <li><span>2</span>Capturer</li>
+          <li><span>3</span>Examiner</li>
           <li><span>4</span>Rapport</li>
         </ol>
       </nav>
@@ -67,6 +67,12 @@
           <div><p class="eyebrow">01 · Préparer et analyser</p><h2 id="analysis-title">Image de la salle</h2></div>
           <p>Cadrez autant d’équipements que possible, sans chercher à identifier les personnes.</p>
         </div>
+
+        <fieldset id="audit-mode" class="mode-selector">
+          <legend>Type d’analyse</legend>
+          <label><input type="radio" name="audit-mode" value="free" checked><span><strong>Détection libre</strong><small>Compter les objets visibles sans référence théorique.</small></span></label>
+          <label><input type="radio" name="audit-mode" value="configured"><span><strong>Audit configuré</strong><small>Comparer les détections à des quantités attendues.</small></span></label>
+        </fieldset>
 
         <div class="analysis-grid">
           <div class="visual-panel">
@@ -93,7 +99,7 @@
               <p class="privacy-notice">L’analyse est réalisée directement dans votre navigateur. Les images ne sont ni envoyées ni enregistrées. Les personnes ne sont ni affichées ni comptées.</p>
               <div class="button-stack">
                 <button id="start-camera" class="button button-primary" type="button">Démarrer la caméra</button>
-                <button id="capture" class="button button-primary" type="button" disabled title="Le modèle et la caméra doivent être prêts">Capturer et analyser</button>
+                <button id="capture" class="button button-primary" type="button" disabled title="Démarrez la caméra avant de capturer">Capturer la photo</button>
                 <button id="stop-camera" class="button button-secondary" type="button" disabled>Arrêter la caméra</button>
                 <label class="button button-secondary file-button" for="image-upload">Importer une image</label>
                 <input id="image-upload" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="upload-help">
@@ -113,21 +119,11 @@
             </div>
 
             <div class="control-actions">
-              <button id="analyse-upload" class="button button-primary" type="button" disabled title="Sélectionnez une image et attendez que le modèle soit prêt">Analyser l’image</button>
+              <button id="analyse-upload" class="button button-primary" type="button" disabled title="Une image et le modèle prêt sont nécessaires">Relancer l’analyse</button>
               <button id="reset-audit" class="button button-ghost" type="button">Recommencer</button>
             </div>
             <p id="analysis-status" class="sr-status" aria-live="polite">Initialisation de l’application.</p>
           </div>
-        </div>
-      </section>
-
-      <section class="section section-tinted" aria-labelledby="configuration-title">
-        <div class="shell">
-          <div class="section-heading">
-            <div><p class="eyebrow">Configuration théorique</p><h2 id="configuration-title">Équipements attendus</h2></div>
-            <p>Modifiez la configuration de référence. Les résultats se recalculent sans relancer l’analyse.</p>
-          </div>
-          <div id="configuration-grid" class="configuration-grid"></div>
         </div>
       </section>
 
@@ -137,6 +133,23 @@
           <p id="results-summary">Lancez une analyse pour afficher les objets reconnus.</p>
         </div>
         <div id="detection-results" class="results-empty"><p>Aucun résultat pour le moment.</p></div>
+      </section>
+
+      <section id="configuration-section" class="section section-tinted" aria-labelledby="configuration-title" hidden>
+        <div class="shell">
+          <div class="section-heading">
+            <div><p class="eyebrow">Configuration théorique</p><h2 id="configuration-title">Équipements attendus</h2></div>
+            <p>Modifiez la configuration de référence. Les résultats se recalculent sans relancer l’analyse.</p>
+          </div>
+          <div class="configuration-toolbar">
+            <p id="configuration-label" class="configuration-label" hidden>Configuration de démonstration fictive</p>
+            <div>
+              <button id="load-example" class="button button-secondary" type="button">Charger la configuration d’exemple EPITA</button>
+              <button id="reset-configuration" class="button button-ghost" type="button">Réinitialiser la configuration</button>
+            </div>
+          </div>
+          <div id="configuration-grid" class="configuration-grid"></div>
+        </div>
       </section>
 
       <section class="section section-tinted" aria-labelledby="dashboard-title">

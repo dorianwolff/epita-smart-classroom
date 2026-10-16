@@ -4,7 +4,7 @@ export const DEFAULTS = Object.freeze({
   maximumSourceDimension: 1280,
   maximumUploadBytes: 15 * 1024 * 1024,
   model: Object.freeze({ base: "lite_mobilenet_v2" }),
-  storageKeys: Object.freeze({ preferences: "sallescope.preferences.v1" }),
+  storageKeys: Object.freeze({ preferences: "sallescope.preferences.v2" }),
   acceptedImageTypes: Object.freeze(["image/jpeg", "image/png", "image/webp"])
 });
 
@@ -18,4 +18,16 @@ export const INPUT_MODE = Object.freeze({
   NONE: "none",
   CAMERA: "camera",
   UPLOAD: "upload"
+});
+
+export const AUDIT_MODE = Object.freeze({
+  FREE: "free",
+  CONFIGURED: "configured"
+});
+
+export const ANALYSIS_STATUS = Object.freeze({
+  IDLE: "idle",
+  QUEUED: "queued",
+  RUNNING: "running",
+  COMPLETE: "complete"
 });

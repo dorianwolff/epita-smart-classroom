@@ -23,6 +23,9 @@
   .control-panel, .visual-panel { border-radius: var(--radius-md); }
   .button-stack { grid-template-columns: 1fr; }
   .button-stack small { grid-column: auto; }
+  .mode-selector { grid-template-columns: 1fr; }
+  .configuration-toolbar { display: grid; }
+  .configuration-toolbar > div, .configuration-toolbar .button { width: 100%; }
   .configuration-grid, .dashboard-grid, .report-grid { grid-template-columns: 1fr; }
   .metric-card { min-height: 120px; }
   .audit-table, .audit-table tbody { display: block; }

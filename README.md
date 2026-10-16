@@ -2,13 +2,16 @@
 
 **EPITA Smart Classroom** — *L’audit visuel de vos salles, en quelques secondes.*
 
-SalleScope est une application web statique d’audit de salle de cours. Elle analyse une photo importée ou une image capturée par la caméra, reconnaît localement certains équipements avec COCO-SSD, puis compare les quantités visibles à une configuration théorique éditable.
+SalleScope est une application web statique de détection et d’audit de salle de cours. Elle analyse une photo importée ou capturée, reconnaît localement certains équipements avec COCO-SSD puis, uniquement en mode audit configuré, les compare à une référence explicite.
 
 ## Fonctionnalités
 
 - Import d’images JPEG, PNG et WebP, redimensionnées à 1280 px maximum avant analyse.
 - Capture ponctuelle par caméra arrière, sans microphone ni enregistrement vidéo.
 - Détection réelle dans le navigateur avec boîtes, libellés français et scores de confiance.
+- Détection libre par défaut, sans quantité fictive ni conclusion d’absence.
+- Audit configuré optionnel avec référence vide, personnalisable ou exemple EPITA explicitement fictif.
+- Capture et aperçu disponibles pendant le chargement du modèle, avec analyse automatique de la photo la plus récente.
 - Suppression immédiate de toute prédiction `person` avant l’état, l’affichage et les calculs.
 - Comptage des chaises, tables/bureaux, ordinateurs portables et écrans.
 - Marquage honnête des tableaux et fenêtres comme non vérifiables.
@@ -28,7 +31,7 @@ Il n’y a aucun backend, compte, secret, service payant, appel d’IA générat
 
 ## Architecture
 
-La configuration des catégories est l’unique source de vérité. Le service de modèle filtre les personnes avant de retourner ses données. Le store contient l’état sûr. Le moteur d’audit est pur et produit le même résultat dérivé pour les vues, le tableau de bord et le rapport.
+La configuration des catégories est l’unique source de vérité, y compris pour l’exemple EPITA. Le service de modèle filtre les personnes avant de retourner ses données. Le store sépare le mode, l’état du modèle, la disponibilité de la source et l’état d’analyse. Le coordinateur d’analyse conserve uniquement la source visuelle éphémère la plus récente et protège contre les inférences dupliquées ou obsolètes. Le moteur d’audit pur produit le même résultat dérivé pour les vues, le tableau de bord et le rapport.
 
 ```text
 SalleScope/
@@ -49,11 +52,13 @@ SalleScope/
 │   ├── config/{categories,coco-labels,defaults}.js
 │   ├── state/store.js
 │   ├── services/{model,camera,image,report}-service.js
+│   ├── services/analysis-coordinator.js
 │   ├── domain/audit-engine.js
-│   ├── ui/{ui-controller,canvas-renderer,configuration-view,results-view,dashboard-view,audit-view}.js
+│   ├── ui/{ui-controller,application-view,canvas-renderer,configuration-view,results-view,dashboard-view,audit-view}.js
 │   └── utils/{dom,errors,formatting}.js
 └── tests/
     ├── audit-engine.test.mjs
+    ├── state-and-queue.test.mjs
     └── model-privacy.test.mjs
 ```
 
@@ -103,4 +108,4 @@ Une prédiction `person` éventuellement produite en mémoire par COCO-SSD est s
 
 ## Compatibilité et tests manuels
 
-Utiliser une version récente de Chrome, Edge, Firefox ou Safari avec JavaScript activé. Safari/iOS peut demander une interaction avant l’activation de la caméra. Vérifier au minimum : import et analyse, seuil, configuration, refus caméra, image sans équipement, présence d’une personne, largeurs 375/768/1440 px et aperçu avant impression. Le protocole exhaustif et les résultats à renseigner sont dans [PROJECT.md](./PROJECT.md).
+Utiliser une version récente de Chrome, Edge, Firefox ou Safari avec JavaScript activé. Safari/iOS peut demander une interaction avant l’activation de la caméra. Vérifier au minimum : import avant et après disponibilité du modèle, remplacement d’une photo en attente, détection libre, audit configuré, exemple EPITA, seuil, refus caméra, présence d’une personne, largeurs 375/768/1440 px et aperçu avant impression. Le protocole exhaustif et les résultats sont dans [PROJECT.md](./PROJECT.md).

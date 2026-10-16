@@ -1,5 +1,6 @@
 import { clearElement, createElement } from "../utils/dom.js";
 import { formatDateTime, formatInputMode, signedNumber } from "../utils/formatting.js";
+import { AUDIT_MODE } from "../config/defaults.js";
 
 function addListBlock(container, title, values, fallback) {
   const block = createElement("section", { className: "report-block" });
@@ -22,7 +23,7 @@ function createComparisonTable(rows) {
   const body = document.createElement("tbody");
   rows.forEach((row) => {
     const tr = document.createElement("tr");
-    [row.label, row.expected, row.detected ?? "—", row.difference === null ? "—" : signedNumber(row.difference), row.status]
+    [row.label, row.expected ?? "—", row.detected ?? "—", row.difference === null ? "—" : signedNumber(row.difference), row.status]
       .forEach((value) => tr.append(createElement("td", { text: String(value) })));
     body.append(tr);
   });
@@ -38,11 +39,17 @@ export function renderReport(container, state) {
   }
 
   const { audit, auditMetadata } = state;
+  const configured = audit.mode === AUDIT_MODE.CONFIGURED;
+  const reference = configured
+    ? state.configurationSource === "example" ? "Configuration de démonstration fictive" : "Configuration personnalisée"
+    : "Aucune configuration de référence sélectionnée";
   const intro = createElement("div", { className: "report-grid" });
   addListBlock(intro, "Contexte de l’audit", [
     `Date et heure : ${formatDateTime(new Date(auditMetadata.completedAt))}`,
     `Méthode d’entrée : ${formatInputMode(auditMetadata.inputMode)}`,
     `Seuil de confiance : ${Math.round(auditMetadata.confidenceThreshold * 100)} %`,
+    `Mode : ${configured ? "Audit configuré" : "Détection libre"}`,
+    `Configuration de référence : ${reference}`,
     `Statut global : ${audit.metrics.globalStatus}`
   ], "Contexte indisponible");
   addListBlock(intro, "Synthèse", [
@@ -54,14 +61,17 @@ export function renderReport(container, state) {
   container.append(intro);
 
   const comparison = createElement("section", { className: "report-block" });
-  comparison.append(createElement("h3", { text: "Comparaison attendu / détecté" }), createComparisonTable(audit.rows));
+  comparison.append(createElement("h3", { text: configured ? "Comparaison attendu / détecté" : "Détections par catégorie" }), createComparisonTable(audit.rows));
   container.append(comparison);
 
   const mapped = audit.rows.filter((row) => row.supported && row.detected > 0).map((row) => `${row.label} : ${row.detected}`);
   const others = audit.otherObjects.map((item) => `${item.label} : ${item.count}`);
   const lowerGrid = createElement("div", { className: "report-grid" });
   addListBlock(lowerGrid, "Équipements détectés", [...mapped, ...others], "Aucun objet sûr reconnu.");
-  addListBlock(lowerGrid, "Différences", audit.differences.map((row) => `${row.label} : ${signedNumber(row.difference)}`), "Aucune différence sur les catégories vérifiables.");
+  const differenceFallback = configured
+    ? "Aucune différence sur les catégories vérifiables."
+    : "Aucune comparaison : aucune configuration de référence n’a été sélectionnée.";
+  addListBlock(lowerGrid, "Différences", audit.differences.map((row) => `${row.label} : ${signedNumber(row.difference)}`), differenceFallback);
   addListBlock(lowerGrid, "Catégories non vérifiables", audit.rows.filter((row) => !row.supported).map((row) => `${row.label} — ${row.limitation}`), "Aucune.");
   addListBlock(lowerGrid, "Contrôles manuels recommandés", [
     "Vérifier les objets masqués ou hors cadre.",

@@ -20,7 +20,7 @@ export function renderDashboard(container, statusElement, metrics) {
 }
 
 function getGlobalStatusClass(status) {
-  if (status === "Configuration vérifiée") return "status-verified";
+  if (["Configuration vérifiée", "Détection terminée"].includes(status)) return "status-verified";
   if (status === "En attente") return "status-waiting";
   return "status-difference";
 }

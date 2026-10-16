@@ -6,7 +6,8 @@ function statusClass(status) {
     "Vérifié": "status-verified",
     "Écart à contrôler": "status-difference",
     "Surplus observé": "status-surplus",
-    "Non vérifiable": "status-unsupported"
+    "Non vérifiable": "status-unsupported",
+    "Non configuré": "status-unconfigured"
   };
   return classes[status] ?? "status-waiting";
 }
@@ -30,7 +31,7 @@ export function renderAuditRows(container, rows) {
     statusCell.append(status);
     tableRow.append(
       equipment,
-      createCell("Attendu", String(row.expected)),
+      createCell("Attendu", row.expected === null ? "—" : String(row.expected)),
       createCell("Détecté", row.detected === null ? "—" : String(row.detected)),
       createCell("Différence", row.difference === null ? "—" : signedNumber(row.difference)),
       statusCell

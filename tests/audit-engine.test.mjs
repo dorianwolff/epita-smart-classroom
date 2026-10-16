@@ -1,33 +1,58 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CATEGORIES, DEFAULT_EXPECTED } from "../src/config/categories.js";
+import { CATEGORIES, EMPTY_EXPECTED, EPITA_EXAMPLE_EXPECTED } from "../src/config/categories.js";
+import { AUDIT_MODE } from "../src/config/defaults.js";
 import { calculateAudit } from "../src/domain/audit-engine.js";
 
 const detection = (className) => ({ className, score: 0.9, bbox: [0, 0, 10, 10] });
 
-test("returns waiting state before an analysis", () => {
-  const audit = calculateAudit({ detections: [], categories: CATEGORIES, expectedConfiguration: DEFAULT_EXPECTED, analysed: false });
-  assert.equal(audit.metrics.globalStatus, "En attente");
+function calculate(overrides = {}) {
+  return calculateAudit({
+    detections: [],
+    categories: CATEGORIES,
+    expectedConfiguration: EMPTY_EXPECTED,
+    analysed: false,
+    auditMode: AUDIT_MODE.FREE,
+    ...overrides
+  });
+}
+
+test("free detection has no fictitious reference or differences", () => {
+  const audit = calculate({ detections: [detection("chair")], analysed: true });
+  assert.equal(audit.metrics.globalStatus, "Détection terminée");
   assert.equal(audit.metrics.verifiableRules, 0);
+  assert.equal(audit.metrics.observedDifferences, 0);
+  assert.ok(audit.rows.every((row) => row.expected === null && row.difference === null));
+  assert.ok(audit.rows.every((row) => row.status === "Non configuré"));
 });
 
-test("calculates exact, missing and surplus quantities", () => {
-  const expectedConfiguration = { ...DEFAULT_EXPECTED, tables: 1, chairs: 2, laptops: 0, screens: 0 };
+test("configured mode calculates exact, missing and surplus quantities", () => {
+  const expectedConfiguration = { ...EPITA_EXAMPLE_EXPECTED, tables: 1, chairs: 2, laptops: 0, screens: 0 };
   const detections = [detection("dining table"), detection("chair"), detection("laptop")];
-  const audit = calculateAudit({ detections, categories: CATEGORIES, expectedConfiguration, analysed: true });
+  const audit = calculate({ detections, expectedConfiguration, analysed: true, auditMode: AUDIT_MODE.CONFIGURED });
   assert.equal(audit.rows.find((row) => row.id === "tables").status, "Vérifié");
   assert.equal(audit.rows.find((row) => row.id === "chairs").status, "Écart à contrôler");
   assert.equal(audit.rows.find((row) => row.id === "laptops").status, "Surplus observé");
   assert.equal(audit.metrics.observedDifferences, 2);
 });
 
-test("keeps unsupported categories non-verifiable", () => {
-  const audit = calculateAudit({ detections: [], categories: CATEGORIES, expectedConfiguration: DEFAULT_EXPECTED, analysed: true });
+test("configured mode leaves empty and unsupported categories non-comparable", () => {
+  const audit = calculate({ analysed: true, auditMode: AUDIT_MODE.CONFIGURED });
+  assert.equal(audit.rows.find((row) => row.id === "chairs").status, "Non configuré");
   assert.equal(audit.rows.find((row) => row.id === "board").status, "Non vérifiable");
-  assert.equal(audit.rows.find((row) => row.id === "windows").detected, null);
+  assert.equal(audit.metrics.globalStatus, "Analyse insuffisante");
+});
+
+test("changing modes recalculates without changing detections", () => {
+  const detections = [detection("chair")];
+  const free = calculate({ detections, analysed: true, expectedConfiguration: EPITA_EXAMPLE_EXPECTED });
+  const configured = calculate({ detections, analysed: true, expectedConfiguration: EPITA_EXAMPLE_EXPECTED, auditMode: AUDIT_MODE.CONFIGURED });
+  assert.equal(free.classCounts.chair, configured.classCounts.chair);
+  assert.equal(free.metrics.observedDifferences, 0);
+  assert.ok(configured.metrics.observedDifferences > 0);
 });
 
 test("separates recognised objects outside classroom mapping", () => {
-  const audit = calculateAudit({ detections: [detection("book")], categories: CATEGORIES, expectedConfiguration: DEFAULT_EXPECTED, analysed: true });
+  const audit = calculate({ detections: [detection("book")], analysed: true });
   assert.deepEqual(audit.otherObjects, [{ className: "book", label: "livre", count: 1 }]);
 });

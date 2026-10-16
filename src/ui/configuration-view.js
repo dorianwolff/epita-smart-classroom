@@ -14,14 +14,15 @@ export function renderConfiguration(container, categories, expectedConfiguration
     input.type = "number";
     input.min = "0";
     input.step = "1";
-    input.value = expectedConfiguration[category.id];
+    input.value = expectedConfiguration[category.id] ?? "";
+    input.placeholder = "—";
     input.id = `expected-${category.id}`;
     input.setAttribute("inputmode", "numeric");
     input.setAttribute("aria-describedby", `limitation-${category.id}`);
     label.htmlFor = input.id;
     input.addEventListener("change", () => {
-      const value = Math.max(0, Math.trunc(Number(input.value) || 0));
-      input.value = value;
+      const value = input.value === "" ? null : Math.max(0, Math.trunc(Number(input.value) || 0));
+      input.value = value ?? "";
       onChange(category.id, value);
     });
 
@@ -29,5 +30,12 @@ export function renderConfiguration(container, categories, expectedConfiguration
     limitation.id = `limitation-${category.id}`;
     card.append(title, label, input, limitation);
     container.append(card);
+  });
+}
+
+export function updateConfigurationValues(container, expectedConfiguration) {
+  Object.entries(expectedConfiguration).forEach(([id, value]) => {
+    const input = container.querySelector(`#expected-${id}`);
+    if (input && document.activeElement !== input) input.value = value ?? "";
   });
 }

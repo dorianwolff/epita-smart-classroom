@@ -6,6 +6,7 @@
 .status-error, .status-difference { color: var(--color-danger); background: var(--color-danger-soft); }
 .status-surplus { color: #8a5509; background: var(--color-warning-soft); }
 .status-unsupported { color: #525c6d; background: #eef1f5; }
+.status-unconfigured { color: #315979; background: #eaf4fb; }
 .privacy-mini { color: var(--color-text-muted); font-size: 0.8rem; }
 .button { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.72rem 1.1rem; border: 1px solid transparent; border-radius: var(--radius-sm); font-weight: 800; text-decoration: none; cursor: pointer; transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease; }
 .button:not(:disabled):hover { transform: translateY(-1px); }
@@ -15,6 +16,13 @@
 .button-ghost { color: var(--color-text-muted); background: transparent; border-color: transparent; }
 .button-small { min-height: 40px; padding: 0.45rem 0.75rem; color: var(--color-danger); background: #fff; border-color: #f1bbc2; }
 .file-button { cursor: pointer; }
+.mode-selector { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin: 0 0 var(--space-5); padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #fff; }
+.mode-selector legend { padding: 0 0.4rem; color: var(--color-text-muted); font-size: 0.82rem; font-weight: 800; }
+.mode-selector label { min-height: 72px; display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3); border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer; }
+.mode-selector label:has(input:checked) { background: #effcf9; border-color: #a7e7de; }
+.mode-selector input { accent-color: var(--color-accent-dark); }
+.mode-selector span { display: grid; }
+.mode-selector small { color: var(--color-text-muted); }
 .privacy-card { display: flex; gap: var(--space-3); padding: var(--space-4); border: 1px solid #bdece5; border-radius: var(--radius-lg); background: #effcf9; box-shadow: var(--shadow-sm); }
 .privacy-card p { margin: 0.35rem 0 0; color: #3d625e; font-size: 0.92rem; }
 .privacy-icon { display: grid; flex: 0 0 auto; width: 34px; height: 34px; place-items: center; color: #fff; background: var(--color-success); border-radius: 50%; font-weight: 900; }
@@ -38,6 +46,9 @@
 .config-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--category-color); }
 .config-card label { display: block; margin-bottom: 0.35rem; color: var(--color-text-muted); font-size: 0.82rem; font-weight: 700; }
 .config-card p { min-height: 2.6em; margin: var(--space-2) 0 0; color: var(--color-text-muted); font-size: 0.78rem; }
+.configuration-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); }
+.configuration-toolbar > div { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-left: auto; }
+.configuration-label { margin: 0; padding: 0.5rem 0.75rem; color: #78520c; background: var(--color-warning-soft); border-radius: 999px; font-size: 0.85rem; font-weight: 800; }
 .detection-list { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .detection-chip { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.75rem; border: 1px solid var(--color-border); border-radius: 999px; background: #fff; }
 .detection-chip b { color: var(--color-navy); }
@@ -55,7 +66,7 @@
 .report-sheet { padding: clamp(1.25rem, 4vw, 3rem); }
 .report-placeholder { color: var(--color-text-muted); text-align: center; }
 .report-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
-.report-block { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+.report-block { min-width: 0; padding: var(--space-3); overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
 .report-block h3 { margin-bottom: 0.65rem; }
 .report-block p, .report-block ul { margin-bottom: 0; }
 .report-table { width: 100%; border-collapse: collapse; }
