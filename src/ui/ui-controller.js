@@ -27,7 +27,7 @@ export class UiController {
 
   getElements() {
     const ids = ["model-status", "camera-preview", "detection-canvas", "empty-visual", "analysis-overlay",
-      "start-camera", "capture", "stop-camera", "image-upload", "hero-upload", "analyse-upload",
+      "start-camera", "retake-photo", "capture", "stop-camera", "stage-upload-label", "image-upload", "hero-upload", "analyse-upload",
       "reset-audit", "confidence", "confidence-value", "app-error", "error-title", "error-message",
       "error-action", "analysis-status", "configuration-section", "configuration-label", "configuration-grid",
       "load-example", "reset-configuration", "detection-results", "results-summary", "dashboard",
@@ -55,6 +55,7 @@ export class UiController {
     this.elements.hero_upload.addEventListener("click", () => this.elements.image_upload.click());
     this.elements.image_upload.addEventListener("change", (event) => this.handleUpload(event));
     this.elements.start_camera.addEventListener("click", () => this.startCamera());
+    this.elements.retake_photo.addEventListener("click", () => this.startCamera());
     this.elements.stop_camera.addEventListener("click", () => this.stopCamera());
     this.elements.capture.addEventListener("click", () => this.capturePhoto());
     this.elements.analyse_upload.addEventListener("click", () => this.analysis.retry());

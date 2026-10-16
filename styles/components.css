@@ -8,7 +8,7 @@
 .status-unsupported { color: #525c6d; background: #eef1f5; }
 .status-unconfigured { color: #315979; background: #eaf4fb; }
 .privacy-mini { color: var(--color-text-muted); font-size: 0.8rem; }
-.button { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.72rem 1.1rem; border: 1px solid transparent; border-radius: var(--radius-sm); font-weight: 800; text-decoration: none; cursor: pointer; transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease; }
+.button { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.72rem 1.1rem; border: 1px solid transparent; border-radius: var(--radius-sm); font-weight: 800; text-align: center; white-space: normal; text-decoration: none; cursor: pointer; transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease; }
 .button:not(:disabled):hover { transform: translateY(-1px); }
 .button-primary { color: #fff; background: var(--color-navy); box-shadow: 0 8px 18px rgb(11 31 58 / 18%); }
 .button-primary:not(:disabled):hover { background: var(--color-navy-soft); }
@@ -62,7 +62,6 @@
 .audit-table th { color: var(--color-text-muted); background: #f8fafc; font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; }
 .audit-table tbody tr:last-child td { border-bottom: 0; }
 .audit-equipment small { display: block; color: var(--color-text-muted); }
-.audit-explanation { margin: var(--space-3) 0 0; color: var(--color-text-muted); font-size: 0.9rem; }
 .report-sheet { padding: clamp(1.25rem, 4vw, 3rem); }
 .report-placeholder { color: var(--color-text-muted); text-align: center; }
 .report-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }

@@ -4,6 +4,7 @@ import { EPITA_EXAMPLE_EXPECTED } from "../src/config/categories.js";
 import { ANALYSIS_STATUS, AUDIT_MODE, INPUT_MODE, MODEL_STATUS } from "../src/config/defaults.js";
 import { createAnalysisCoordinator } from "../src/services/analysis-coordinator.js";
 import { createStore } from "../src/state/store.js";
+import { renderAnalysisStatus } from "../src/ui/application-view.js";
 
 function installStorage() {
   const values = new Map();
@@ -83,4 +84,15 @@ test("model failure retains the local preview and queued state", () => {
   assert.equal(store.getState().hasVisualSource, true);
   assert.equal(store.getState().analysisStatus, ANALYSIS_STATUS.QUEUED);
   assert.equal(coordinator.getSource(), "retained-photo");
+});
+
+test("a queued photo announces automatic analysis while the model loads", () => {
+  const element = { textContent: "" };
+  renderAnalysisStatus(element, {
+    cameraStatus: "idle",
+    analysisStatus: ANALYSIS_STATUS.QUEUED,
+    modelStatus: MODEL_STATUS.LOADING,
+    hasVisualSource: true
+  });
+  assert.equal(element.textContent, "Photo prête. L’analyse démarrera automatiquement.");
 });

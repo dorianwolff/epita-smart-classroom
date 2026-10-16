@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="./styles/base.css">
     <link rel="stylesheet" href="./styles/layout.css">
     <link rel="stylesheet" href="./styles/components.css">
+    <link rel="stylesheet" href="./styles/capture.css">
     <link rel="stylesheet" href="./styles/responsive.css">
     <link rel="stylesheet" href="./styles/print.css" media="print">
     <script defer src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
@@ -63,7 +64,7 @@
       </nav>
 
       <section id="audit-workspace" class="section shell" aria-labelledby="analysis-title">
-        <div class="section-heading">
+        <div class="section-heading analysis-intro">
           <div><p class="eyebrow">01 · Préparer et analyser</p><h2 id="analysis-title">Image de la salle</h2></div>
           <p>Cadrez autant d’équipements que possible, sans chercher à identifier les personnes.</p>
         </div>
@@ -89,29 +90,37 @@
                 <strong>Analyse en cours…</strong>
                 <small>Les calculs restent dans ce navigateur.</small>
               </div>
+              <button id="capture" class="capture-button" type="button" disabled hidden title="Prendre la photo" aria-label="Prendre la photo">
+                <span aria-hidden="true"></span>
+              </button>
             </div>
+
+            <div class="stage-controls" aria-label="Commandes de la source visuelle">
+              <button id="start-camera" class="button button-primary stage-primary" type="button">Démarrer la caméra</button>
+              <button id="retake-photo" class="button button-primary stage-primary" type="button" hidden>Reprendre</button>
+              <button id="stop-camera" class="button button-ghost" type="button" disabled hidden>Arrêter la caméra</button>
+              <label id="stage-upload-label" class="button button-secondary file-button" for="image-upload">Importer une image</label>
+              <input id="image-upload" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="upload-help">
+              <small id="upload-help" class="stage-file-help">JPEG, PNG ou WebP · 15 Mo maximum</small>
+            </div>
+            <p id="analysis-status" class="stage-status" aria-live="polite">Initialisation de l’application.</p>
             <p id="visual-caption" class="visual-caption">Le cadrage influence les résultats. Les objets masqués peuvent ne pas être reconnus.</p>
           </div>
 
           <div class="control-panel">
             <div class="control-section">
-              <h3>Source visuelle</h3>
+              <h3>Analyse locale et confidentielle</h3>
               <p class="privacy-notice">L’analyse est réalisée directement dans votre navigateur. Les images ne sont ni envoyées ni enregistrées. Les personnes ne sont ni affichées ni comptées.</p>
-              <div class="button-stack">
-                <button id="start-camera" class="button button-primary" type="button">Démarrer la caméra</button>
-                <button id="capture" class="button button-primary" type="button" disabled title="Démarrez la caméra avant de capturer">Capturer la photo</button>
-                <button id="stop-camera" class="button button-secondary" type="button" disabled>Arrêter la caméra</button>
-                <label class="button button-secondary file-button" for="image-upload">Importer une image</label>
-                <input id="image-upload" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="upload-help">
-                <small id="upload-help">JPEG, PNG ou WebP · 15 Mo maximum</small>
-              </div>
             </div>
 
-            <div class="control-section">
-              <div class="range-heading"><label for="confidence">Seuil de confiance</label><output id="confidence-value" for="confidence">60 %</output></div>
-              <input id="confidence" type="range" min="30" max="90" step="5" value="60">
-              <p class="field-help">Un seuil plus élevé réduit les faux positifs, mais peut ignorer certains objets.</p>
-            </div>
+            <details class="control-section advanced-settings">
+              <summary>Réglages avancés</summary>
+              <div class="advanced-settings-body">
+                <div class="range-heading"><label for="confidence">Seuil de confiance</label><output id="confidence-value" for="confidence">60 %</output></div>
+                <input id="confidence" type="range" min="30" max="90" step="5" value="60">
+                <p class="field-help">Un seuil plus élevé réduit les faux positifs, mais peut ignorer certains objets.</p>
+              </div>
+            </details>
 
             <div id="app-error" class="error-panel" role="alert" hidden>
               <div><strong id="error-title"></strong><p id="error-message"></p></div>
@@ -122,7 +131,6 @@
               <button id="analyse-upload" class="button button-primary" type="button" disabled title="Une image et le modèle prêt sont nécessaires">Relancer l’analyse</button>
               <button id="reset-audit" class="button button-ghost" type="button">Recommencer</button>
             </div>
-            <p id="analysis-status" class="sr-status" aria-live="polite">Initialisation de l’application.</p>
           </div>
         </div>
       </section>
@@ -166,7 +174,6 @@
               <tbody id="audit-rows"></tbody>
             </table>
           </div>
-          <p class="audit-explanation">Une quantité inférieure peut provenir d’un objet masqué, d’un mauvais cadrage ou d’une limite du modèle. Un contrôle humain reste nécessaire.</p>
         </div>
       </section>
 
@@ -176,6 +183,10 @@
           <button id="print-report" class="button button-primary" type="button" disabled>Imprimer / enregistrer en PDF</button>
         </div>
         <div id="report-content" class="report-sheet"></div>
+        <details class="model-limitations">
+          <summary>Limites du modèle et interprétation des écarts</summary>
+          <p>Une quantité inférieure peut provenir d’un objet masqué, d’un mauvais cadrage ou d’une limite du modèle. Un contrôle humain reste nécessaire.</p>
+        </details>
       </section>
     </main>
 

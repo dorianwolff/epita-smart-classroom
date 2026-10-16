@@ -1,25 +1,33 @@
 @media (max-width: 900px) {
   .hero { min-height: auto; grid-template-columns: 1fr; gap: var(--space-5); }
   .analysis-grid { grid-template-columns: 1fr; }
+  .visual-stage { aspect-ratio: 4 / 3; }
   .configuration-grid, .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
   .privacy-mini { display: none; }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 699px) {
   :root { --space-7: 3.25rem; }
   .shell { width: min(calc(100% - 1.25rem), var(--max-width)); }
   .site-header { padding-top: env(safe-area-inset-top); }
   .header-inner { min-height: 68px; }
+  .header-inner > * { min-width: 0; }
   .brand small { display: none; }
-  .header-status { max-width: 50%; }
-  .status-pill { text-align: center; }
+  .header-status { max-width: 48%; }
+  .status-pill { padding-inline: 0.55rem; text-align: center; line-height: 1.25; }
   .hero { padding-block: var(--space-6); }
+  .hero h1 { font-size: clamp(2.15rem, 10vw, 2.8rem); }
   .hero-actions, .hero-actions .button { width: 100%; }
-  .workflow { overflow-x: auto; }
-  .workflow ol { min-width: 570px; }
-  .workflow li { min-height: 60px; font-size: 0.88rem; }
-  .section-heading { display: grid; gap: var(--space-3); align-items: start; }
-  .visual-stage { min-height: 280px; }
+  .workflow { overflow: visible; }
+  .workflow ol { min-width: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .workflow li { min-width: 0; min-height: 64px; display: grid; place-content: center; gap: 0.2rem; padding: 0.35rem 0.15rem; font-size: 0.7rem; line-height: 1.1; text-align: center; }
+  .workflow li span { width: 27px; height: 27px; margin-inline: auto; }
+  .section-heading { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+  .visual-stage { aspect-ratio: 3 / 4; min-height: 0; }
+  .visual-panel { padding: var(--space-2); }
+  .stage-controls .button, .stage-controls .file-button { width: 100%; flex-basis: 100%; }
+  .stage-controls .button-ghost { order: 3; }
+  .stage-file-help { text-align: center; }
   .control-panel, .visual-panel { border-radius: var(--radius-md); }
   .button-stack { grid-template-columns: 1fr; }
   .button-stack small { grid-column: auto; }
@@ -37,4 +45,36 @@
   .audit-table td:first-child, .audit-table td:last-child { grid-column: 1 / -1; }
   .report-heading .button { width: 100%; }
   .site-footer .shell { display: grid; }
+
+  .has-audit-started .hero,
+  .has-audit-started .workflow,
+  .has-audit-started .analysis-intro { display: none; }
+
+  .has-audit-started #audit-workspace { padding-top: var(--space-4); }
+  .has-audit-started .mode-selector { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-bottom: var(--space-3); padding: 0.35rem; }
+  .has-audit-started .mode-selector label { min-width: 0; min-height: 58px; justify-content: center; padding: 0.55rem; text-align: center; }
+  .has-audit-started .mode-selector span { display: block; min-width: 0; }
+  .has-audit-started .mode-selector strong { display: block; overflow-wrap: anywhere; font-size: 0.85rem; line-height: 1.2; }
+  .has-audit-started .mode-selector small { display: none; }
+}
+
+@media (max-width: 420px) {
+  .brand strong { font-size: 1rem; }
+  .status-pill { font-size: 0.7rem; }
+  .control-panel { padding: var(--space-3); }
+  .audit-table tr { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .audit-table td { min-width: 0; overflow-wrap: anywhere; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 900px) {
+  .has-audit-started .hero,
+  .has-audit-started .workflow,
+  .has-audit-started .analysis-intro { display: none; }
+  .has-audit-started #audit-workspace { padding-top: var(--space-2); }
+  .has-audit-started .mode-selector { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-bottom: var(--space-2); padding: 0.3rem; }
+  .has-audit-started .mode-selector label { min-height: 48px; justify-content: center; padding: 0.4rem; text-align: center; }
+  .has-audit-started .mode-selector span { display: block; min-width: 0; }
+  .has-audit-started .mode-selector strong { display: block; font-size: 0.82rem; line-height: 1.15; }
+  .has-audit-started .mode-selector small { display: none; }
+  .visual-stage { height: max(180px, calc(100svh - 190px)); aspect-ratio: auto; max-height: none; }
 }
