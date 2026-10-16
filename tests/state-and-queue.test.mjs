@@ -56,10 +56,15 @@ test("a selected source receives immutable identity and request metadata", () =>
     type: INPUT_MODE.UPLOAD,
     width: 20,
     height: 10,
+    originalWidth: 20,
+    originalHeight: 10,
+    downscaled: false,
     createdAt: source.createdAt,
     status: "ready"
   });
   assert.equal(typeof store.getState().currentAnalysis.requestId, "number");
+  assert.equal(store.getState().currentAnalysis.preprocessingId, "original");
+  assert.equal(store.getState().currentAnalysis.threshold, 0.3);
   assert.ok(Object.isFrozen(source));
   assert.ok(Object.isFrozen(store.getState().currentSource));
   assert.ok(Object.isFrozen(store.getState().currentAnalysis));

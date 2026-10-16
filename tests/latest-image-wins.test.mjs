@@ -109,7 +109,7 @@ test("two threshold changes during inference commit only the newest threshold", 
   h.store.setThreshold(0.55);
   h.coordinator.retry();
   await finish(first);
-  assert.deepEqual(h.calls.map(({ threshold }) => threshold), [0.4, 0.55]);
+  assert.deepEqual(h.calls.map(({ threshold }) => threshold), [0.3, 0.55]);
   const latest = h.controls.get("A:2");
   const current = h.coordinator.getSource();
   await finish(latest, [prediction(current.sourceId, "detector-a")]);

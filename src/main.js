@@ -1,4 +1,5 @@
 import { createCameraService } from "./services/camera-service.js";
+import { AudioController } from "./audio/audio-controller.js";
 import { createModelService } from "./services/model-service.js";
 import { createStore } from "./state/store.js";
 import { UiController } from "./ui/ui-controller.js";
@@ -15,11 +16,15 @@ function showFatalError(error) {
 
 function bootstrap() {
   try {
+    const store = createStore();
+    const audioController = new AudioController({ store });
     const controller = new UiController({
-      store: createStore(),
+      store,
       modelService: createModelService(),
-      cameraService: createCameraService()
+      cameraService: createCameraService(),
+      audioController
     });
+    audioController.start();
     controller.start();
   } catch (error) {
     showFatalError(error);

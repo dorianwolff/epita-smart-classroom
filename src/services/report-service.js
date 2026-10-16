@@ -33,10 +33,24 @@ function createComparisonTable(rows) {
 
 export function renderReport(container, state) {
   clearElement(container);
-  if (!state.audit?.analysed) {
+  if (!state.audit?.analysed && !state.audioRecentEvents?.length) {
     container.append(createElement("p", { className: "report-placeholder", text: "Le rapport sera généré après la première analyse." }));
     return;
   }
+
+  if (state.audioRecentEvents?.length) {
+    const audioMetadata = state.audioMetadata ?? {};
+    addListBlock(container, "Événements sonores confirmés", state.audioRecentEvents.map((event) =>
+      `${event.label} · ${Math.round(event.score * 100)} % · ${formatDateTime(new Date(event.detectedAt))}`), "Aucun événement sonore confirmé.");
+    addListBlock(container, "Méthode sonore", [
+      `Modèle : ${audioMetadata.label ?? "YAMNet float32 v1"}`,
+      `Seuil : ${Math.round(state.soundConfidenceThreshold * 100)} %`,
+      "Traitement local par fenêtres, sans conservation du son brut.",
+      "Aucune transcription ni identification de la voix."
+    ], "Méthode indisponible.");
+  }
+
+  if (!state.audit?.analysed) return;
 
   const { audit, auditMetadata } = state;
   const configured = audit.mode === AUDIT_MODE.CONFIGURED;
@@ -52,6 +66,7 @@ export function renderReport(container, state) {
     `Moteur d’exécution : ${auditMetadata.runtimeBackend}`,
     `Temps d’inférence mesuré : ${auditMetadata.inferenceMilliseconds} ms`,
     `Seuil de confiance : ${Math.round(auditMetadata.confidenceThreshold * 100)} %`,
+    `Prétraitement : ${auditMetadata.preprocessingLabel ?? "Image originale"}`,
     `Mode : ${configured ? "Audit configuré" : "Détection libre"}`,
     `Configuration de référence : ${reference}`,
     `Statut global : ${audit.metrics.globalStatus}`
@@ -63,6 +78,17 @@ export function renderReport(container, state) {
     `${audit.metrics.observedDifferences} écart(s) observé(s)`
   ], "Aucune donnée");
   container.append(intro);
+
+  if (state.imageQuality?.metrics) {
+    const quality = state.imageQuality;
+    addListBlock(container, "Qualité de l’image", [
+      `Évaluation : ${quality.status}`,
+      `Dimensions analysées : ${quality.metrics.width} × ${quality.metrics.height} px`,
+      `Luminosité moyenne : ${quality.metrics.meanLuminance}/255`,
+      `Contraste : ${quality.metrics.contrast}`,
+      ...quality.guidance
+    ], "Qualité non mesurée.");
+  }
 
   const comparison = createElement("section", { className: "report-block" });
   comparison.append(createElement("h3", { text: configured ? "Comparaison attendu / détecté" : "Détections par catégorie" }), createComparisonTable(audit.rows));

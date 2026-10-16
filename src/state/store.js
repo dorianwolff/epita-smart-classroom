@@ -1,27 +1,6 @@
 import { EMPTY_EXPECTED, EPITA_EXAMPLE_EXPECTED } from "../config/categories.js";
 import { ANALYSIS_STATUS, AUDIT_MODE, DEFAULTS, INPUT_MODE, MODEL_STATUS } from "../config/defaults.js";
-
-function sanitizeExpected(candidate = {}) {
-  return Object.fromEntries(Object.keys(EMPTY_EXPECTED).map((id) => {
-    const value = candidate[id];
-    return [id, Number.isInteger(value) && value >= 0 ? value : null];
-  }));
-}
-
-function loadPreferences() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(DEFAULTS.storageKeys.preferences) ?? "{}");
-    const threshold = Number(saved.confidenceThreshold);
-    return {
-      expectedConfiguration: sanitizeExpected(saved.expectedConfiguration),
-      confidenceThreshold: threshold >= DEFAULTS.minimumConfidenceThreshold && threshold <= DEFAULTS.maximumConfidenceThreshold
-        ? threshold
-        : DEFAULTS.confidenceThreshold
-    };
-  } catch {
-    return { expectedConfiguration: { ...EMPTY_EXPECTED }, confidenceThreshold: DEFAULTS.confidenceThreshold };
-  }
-}
+import { loadPreferences, savePreferences } from "./preferences.js";
 
 export function createStore() {
   const preferences = loadPreferences();
@@ -33,6 +12,7 @@ export function createStore() {
     auditMode: AUDIT_MODE.FREE,
     configurationSource: null,
     confidenceThreshold: preferences.confidenceThreshold,
+    soundConfidenceThreshold: preferences.soundConfidenceThreshold,
     expectedConfiguration: preferences.expectedConfiguration,
     hasVisualSource: false,
     currentSource: null,
@@ -43,17 +23,24 @@ export function createStore() {
     audit: null,
     analysed: false,
     error: null,
-    auditMetadata: null
+    auditMetadata: null,
+    imageQuality: null,
+    audioStatus: "idle",
+    audioCurrentEvent: null,
+    audioRecentEvents: [],
+    audioError: null,
+    audioMetadata: null
   };
 
   const emit = () => listeners.forEach((listener) => listener(state));
   const update = (patch) => { state = { ...state, ...patch }; emit(); };
   const persist = () => {
     try {
-      localStorage.setItem(DEFAULTS.storageKeys.preferences, JSON.stringify({
+      savePreferences(localStorage, {
         confidenceThreshold: state.confidenceThreshold,
+        soundConfidenceThreshold: state.soundConfidenceThreshold,
         expectedConfiguration: state.expectedConfiguration
-      }));
+      });
     } catch (error) {
       console.warn(`[SalleScope] Préférences non enregistrées : ${error.message}`);
     }
@@ -78,6 +65,12 @@ export function createStore() {
       persist();
     },
     setThreshold(value) { update({ confidenceThreshold: value }); persist(); },
+    setSoundThreshold(value) { update({ soundConfidenceThreshold: value }); persist(); },
+    setImageQuality(imageQuality) { update({ imageQuality }); },
+    setAudioState(patch) { update(patch); },
+    resetAudio() {
+      update({ audioStatus: "idle", audioCurrentEvent: null, audioRecentEvents: [], audioError: null, audioMetadata: null });
+    },
     queueVisualSource(source, analysis) {
       update({
         inputMode: source.type,
@@ -90,6 +83,7 @@ export function createStore() {
         audit: null,
         analysed: false,
         auditMetadata: null,
+        imageQuality: null,
         error: null
       });
       return analysis.requestId;
@@ -150,7 +144,8 @@ export function createStore() {
         audit: null,
         analysed: false,
         error: null,
-        auditMetadata: null
+        auditMetadata: null,
+        imageQuality: null
       });
     }
   };
@@ -162,5 +157,8 @@ function matchesAnalysis(state, analysis) {
   return Boolean(current && source &&
     analysis.requestId === current.requestId &&
     analysis.sourceId === source.sourceId &&
-    analysis.sourceVersion === source.sourceVersion);
+    analysis.sourceVersion === source.sourceVersion &&
+    analysis.detectorId === current.detectorId &&
+    analysis.threshold === current.threshold &&
+    analysis.preprocessingId === current.preprocessingId);
 }

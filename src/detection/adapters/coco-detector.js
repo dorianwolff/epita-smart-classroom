@@ -33,7 +33,7 @@ export function createCocoDetector(options = {}) {
     return loadPromise;
   }
 
-  async function detect(source, { threshold, sourceId }) {
+  async function detect(source, { threshold, sourceId, sourceVersion = null, requestId = null }) {
     if (!model) throw new AppError("MODEL_LOAD");
     try {
       const predictions = await model.detect(source, DEFAULTS.maximumDetectionBoxes, threshold);
@@ -43,6 +43,8 @@ export function createCocoDetector(options = {}) {
           prediction,
           index,
           sourceId,
+          sourceVersion,
+          requestId,
           modelId: DEFAULTS.model.id
         }));
     } catch (error) {
@@ -62,7 +64,11 @@ export function createCocoDetector(options = {}) {
       id: DEFAULTS.model.id,
       label: DEFAULTS.model.label,
       threshold: DEFAULTS.confidenceThreshold,
-      backend: globalThis.tf?.getBackend?.() ?? "TensorFlow.js"
+      backend: globalThis.tf?.getBackend?.() ?? "TensorFlow.js",
+      runtime: "TensorFlow.js 4.22.0",
+      task: "object-detection",
+      geometry: Object.freeze(["box"]),
+      experimental: false
     };
   }
 

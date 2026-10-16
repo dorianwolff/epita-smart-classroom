@@ -39,6 +39,9 @@ export function createCameraService() {
     const canvas = document.createElement("canvas");
     canvas.width = fitted.width;
     canvas.height = fitted.height;
+    canvas.sourceOriginalWidth = videoElement.videoWidth;
+    canvas.sourceOriginalHeight = videoElement.videoHeight;
+    canvas.wasDownscaled = fitted.width !== videoElement.videoWidth || fitted.height !== videoElement.videoHeight;
     canvas.getContext("2d", { alpha: false }).drawImage(videoElement, 0, 0, canvas.width, canvas.height);
     return canvas;
   }

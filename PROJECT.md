@@ -2,7 +2,7 @@
 
 ## Problème métier
 
-La préparation d’une salle de cours repose souvent sur un inventaire manuel lent et difficile à reproduire. SalleScope fournit un premier constat visuel en quelques secondes, sans remplacer la validation humaine et sans transmettre d’image hors du navigateur.
+La préparation d’une salle de cours repose souvent sur un inventaire manuel lent et difficile à reproduire. SalleScope fournit un premier constat visuel ou sonore en quelques secondes, sans remplacer la validation humaine et sans transmettre d’image ou de son hors du navigateur.
 
 ## Objectifs et utilisateurs
 
@@ -11,6 +11,8 @@ Objectifs : accélérer le pré-audit, rendre les écarts visibles, produire un 
 ## Périmètre MVP
 
 - Image importée ou capture caméra unique.
+- Écoute sonore volontaire et arrêtée explicitement, avec catégories YAMNet lissées.
+- Évaluation locale de la qualité de capture, sans correction automatique.
 - Détection locale COCO-SSD des chaises, tables, portables et écrans.
 - Configuration théorique éditable, comparaison, synthèse et rapport imprimable.
 - Objets COCO additionnels listés sans règle de comparaison.
@@ -18,11 +20,11 @@ Objectifs : accélérer le pré-audit, rendre les écarts visibles, produire un 
 
 ## Exclusions explicites
 
-Reconnaissance ou suivi des personnes, vidéo continue, identification biométrique, stockage d’images, inventaire multi-salles persistant, collaboration, authentification, API distante, décision automatique, détection personnalisée de tableaux/fenêtres et génération PDF côté serveur sont exclus.
+Reconnaissance ou suivi des personnes, vidéo continue, transcription, identification vocale ou biométrique, stockage d’images/PCM, inventaire multi-salles persistant, collaboration, authentification, API distante, décision automatique, détection personnalisée non validée de tableaux/fenêtres et génération PDF côté serveur sont exclus.
 
 ## Architecture
 
-`main.js` assemble le store, les services et le contrôleur UI. `categories.js` porte toutes les règles de catégorie et l’exemple EPITA. `detection/adapters/coco-detector.js` encapsule TensorFlow.js ; `prediction-normalizer.js` produit le contrat interne unique et `privacy-filter.js` retire les étiquettes privées avant l’état. `source-record.js` attribue une identité immuable. `analysis-coordinator.js` sérialise une tâche active et une seule tâche en attente, avec validation stricte de `sourceId`, `sourceVersion` et `requestId`. `audit-engine.js` est pur ; toutes les vues consomment ses résultats.
+`main.js` assemble le store, les services et les contrôleurs visuel/sonore. `detection/adapters/coco-detector.js` encapsule TensorFlow.js ; `prediction-normalizer.js` produit un contrat boîte/masque/polygone/boîte orientée et `privacy-filter.js` retire les étiquettes privées avant l’état. `analysis-coordinator.js` sérialise une tâche active avec validation de la source, requête, détecteur, seuil et prétraitement. `audio-worker.js` charge MediaPipe/YAMNet à la demande et renvoie seulement des catégories ; `audio-controller.js` possède la permission, les pistes et l’arrêt. `audit-engine.js` reste pur.
 
 Le traitement suit ce flux : source éphémère → file locale révisée → disponibilité du modèle → inférence locale → suppression immédiate de `person` → état sûr → moteur de détection libre ou d’audit configuré → vues et rapport. `localStorage` ne reçoit que les préférences numériques.
 
@@ -48,6 +50,11 @@ Le traitement suit ce flux : source éphémère → file locale révisée → di
 | B16 | Identité de source et coordination dernière image gagnante | P0 | Terminé |
 | B17 | Abstraction, normalisation et confidentialité multi-adaptateur | P0 | Terminé pour COCO |
 | B18 | Évaluation DETR et OWL-ViT | P0 | Non livrée sans mesures |
+| B19 | YAMNet local dans un worker, permission et arrêt microphone | P0 | Terminé |
+| B20 | Migration du seuil visuel à 30 %, plage 10–85 % | P0 | Terminé |
+| B21 | Contrat géométrique et PCA testé pour résultats à masque | P1 | Terminé ; COCO reste box-only |
+| B22 | Évaluation qualité d’image sans prétraitement | P1 | Terminé |
+| B23 | DETR panoptique / OWL / anomalies sur corpus autorisé | P0 | Bloqué : corpus absent |
 
 ## KPI
 
@@ -77,6 +84,10 @@ Aucune valeur de performance ou de précision n’est fabriquée avant l’exéc
 | 13 | Impression / PDF | Rapport A4 lisible sans photo ni contrôles | Réussi le 16/10/2026 : PDF A4 généré, 2 pages, contrôles masqués, inspection visuelle effectuée |
 | 14 | URL Cloudflare Pages | Site accessible, dépendances et modèle chargés | À renseigner après déploiement |
 | 15 | Caméra sur URL HTTPS | Permission, capture, arrêt des pistes | À tester après déploiement |
+| 16 | Worker YAMNet réel | Initialisation WASM et classification hors thread UI | Réussi le 16/10/2026 : silence 29 ms ; phrase générée `Speech` 98,0 % en 37 ms ; signal clap `Clapping` 14,8 % |
+| 17 | Permission/arrêt microphone | Demande audio seule, aucune vidéo, toutes pistes stoppées | Contraintes et erreurs testées automatiquement ; piste factice testée dans Chrome local |
+| 18 | Seuil 10–85 % et migration v2 | Défaut 30 %, ancien 40 % intact migré, valeurs personnalisées conservées | Réussi automatiquement |
+| 19 | Qualité et géométrie | Conseils prudents ; PCA, ordre, échelle et miroir corrects | Réussi automatiquement |
 
 ## Diagnostic de la chaîne de détection — 16/10/2026
 
@@ -104,7 +115,7 @@ Les causes principales étaient donc le couple modèle rapide / seuil élevé et
 |---|---|
 | Modèle | `mobilenet_v2` unique, chargé seul |
 | Libellé de chargement | « Chargement du modèle local… » |
-| Seuil | 0,40 par défaut ; plage 0,25–0,85 ; pas de 0,05 |
+| Seuil | 0,30 par défaut ; plage 0,10–0,85 ; pas de 0,05 ; migration versionnée |
 | Réanalyse | Temporisation de 350 ms, file sérialisée, source courante conservée |
 | Import | Orientation fournie par le navigateur, grand côté limité à 1600 px |
 | Caméra | 1920 × 1080 idéal, environnement, sans audio ; capture intrinsèque limitée à 1600 px |
@@ -151,7 +162,7 @@ Pour le scénario 9, inspecter l’interface, le rapport, la console et l’éta
 
 ## Sécurité et confidentialité
 
-L’application ne possède ni backend, ni identifiant, ni secret. `getUserMedia` demande uniquement `video` avec préférence pour la caméra arrière et fixe `audio: false`. `_headers` définit `microphone=()`. Les trames caméra et images ne sont jamais persistées. Les URL `blob:` sont révoquées. Les pistes sont stoppées après capture, à l’arrêt, à la réinitialisation et avant fermeture.
+L’application ne possède ni backend, ni identifiant, ni secret. La caméra demande `video` avec `audio: false`. L’analyse sonore, séparée, demande `audio` mono avec `video: false` uniquement après une action explicite. `_headers` limite caméra et microphone à la même origine. Les trames, images et fenêtres PCM ne sont jamais persistées. Les pistes sont stoppées à l’arrêt, au changement de source, à la réinitialisation et avant fermeture.
 
 Les prédictions brutes restent dans la fonction d’inférence. Le filtre `prediction.class !== "person"` précède la construction des objets retournés. Aucun journal ne contient d’image ou de prédiction brute.
 
@@ -179,15 +190,15 @@ Le remplacement efface immédiatement détections, audit, métadonnées du rappo
 
 ## Architecture du détecteur et décision modèle
 
-Le reste de l’application ne consomme plus les objets TensorFlow.js. Chaque prédiction sûre est normalisée sous la forme `{ id, sourceId, modelId, rawLabel, categoryId, displayLabel, score, bbox, experimental }`. Le filtre défensif de confidentialité s’exécute entre l’adaptateur et le store.
+Le reste de l’application ne consomme plus les objets TensorFlow.js. Chaque prédiction sûre est normalisée avec identité source/requête/détecteur, libellés, score, `box`, et des champs `mask`, `polygon`, `orientedBox` explicitement `null` lorsqu’ils ne sont pas pris en charge. Le filtre défensif de confidentialité s’exécute entre l’adaptateur et le store.
 
-Le détecteur principal livré reste COCO-SSD `mobilenet_v2` au seuil 0,40. Ce n’est pas un mode de secours déguisé : faute de corpus annoté conservé, DETR ne peut pas être promu honnêtement et aucun sélecteur « Précis/Rapide » n’est affiché. OWL-ViT et le mode étendu sont également absents. Les valeurs mesurées, tailles, révisions candidates Apache-2.0 et protocole requis figurent dans [BENCHMARK.md](./BENCHMARK.md).
+Le détecteur principal livré reste COCO-SSD `mobilenet_v2` au seuil 0,30. Faute de corpus annoté conservé, DETR panoptique ne peut pas être promu honnêtement et aucun sélecteur « Précis/Rapide » n’est affiché. OWL-ViT, les corrections automatiques et la suspicion d’anomalies sont également absents. Les décisions figurent dans [BENCHMARK.md](./BENCHMARK.md).
 
 Le backend effectif de TensorFlow.js est consigné dans chaque rapport. La version actuelle n’exige ni WebGPU ni WASM. Si un adaptateur Transformers.js est validé plus tard, il devra fonctionner dans un Worker, publier le vrai `progress_callback`, préférer WebGPU seulement après test et retomber explicitement sur WASM.
 
 ## Vérifications du 16/10/2026
 
-- 31 tests Node déterministes réussis après correction.
+- 47 tests Node déterministes réussis après l’extension multimodale.
 - Courses couvertes : A→B, A→B→C, échec obsolète, deux seuils successifs, changement de détecteur, reset pendant inférence.
 - Import couvert : même fichier deux fois et révocation d’URL exactement une fois après copie.
 - Confidentialité couverte pour `person`, `human`, `student`, `teacher`, `face`, `man`, `woman`, `boy`, `girl`.
@@ -195,7 +206,7 @@ Le backend effectif de TensorFlow.js est consigné dans chaque rapport. La versi
 - Largeurs Chrome 375, 768 et 1440 px : `scrollWidth === clientWidth` dans les trois cas.
 - Caméra factice Chrome : caméra → capture 1600×900 → import 320×240 → nouvelle capture 1600×900 ; stream conservé en pause après capture et arrêté lors de l’import.
 - Chargement à froid observé sur un profil Chrome neuf : environ 5,8 s pour les poids COCO-SSD. Taille statique vérifiée par en-têtes du dépôt TensorFlow : 67 771 262 octets.
-- Compatibilité statique : serveur HTTP sans build, sans Worker, sans fonction et sans variable d’environnement. `_headers` conserve `camera=(self)` et `microphone=()` ; aucune origine Transformers/Hugging Face n’est nécessaire puisque ces modèles ne sont pas livrés.
+- Compatibilité statique : serveur HTTP sans build, sans fonction et sans variable d’environnement. Le worker audio charge MediaPipe/YAMNet à la demande ; `_headers` conserve `camera=(self)` et `microphone=(self)`. Aucune origine Transformers/Hugging Face n’est nécessaire puisque ces modèles ne sont pas livrés.
 
 ## Recette manuelle sur Cloudflare Pages
 
@@ -213,3 +224,9 @@ Le dépôt ne contient pas encore d’URL Cloudflare publique. Après déploieme
 10. répéter avec une source portrait et paysage à 375, 768 et 1440 px ; vérifier l’alignement des boîtes et l’absence de défilement horizontal ;
 11. couper le réseau après un premier chargement mis en cache, recharger et noter le comportement réel du cache ; ne pas conclure à un support hors ligne sans ce test ;
 12. imprimer le rapport en PDF et vérifier qu’aucune image source n’y figure.
+13. sur l’URL HTTPS, ouvrir « Analyse sonore », démarrer l’écoute, prononcer une phrase puis applaudir ; vérifier les catégories prudentes, les seuils et l’absence de transcription ;
+14. arrêter l’écoute et vérifier dans les indicateurs du navigateur que le microphone n’est plus actif ; recommencer, puis importer une image et vérifier le même arrêt automatique ;
+15. refuser la permission microphone, vérifier l’erreur française, puis autoriser et réessayer sans recharger ;
+16. contrôler une image sombre, surexposée et floue : vérifier les conseils qualité, puis confirmer qu’aucune correction automatique n’est appliquée ;
+17. répéter les étapes 1, 6, 13 et 14 sur mobile réel, notamment Safari/iOS et Chrome/Android, en surveillant mémoire et remise en veille ;
+18. exécuter la même recette sur Cloudflare Pages et GitHub Pages. Sur Cloudflare, vérifier la réponse `_headers` (`camera=(self), microphone=(self)`); sur GitHub Pages, vérifier HTTPS et les permissions effectives puisque `_headers` n’y est pas appliqué.

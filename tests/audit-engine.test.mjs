@@ -67,3 +67,12 @@ test("maps the exact COCO class names through the central category configuration
   assert.equal(CATEGORY_BY_CLASS.get("laptop").id, "laptops");
   assert.equal(CATEGORY_BY_CLASS.get("tv").id, "screens");
 });
+
+test("chair-part labels cannot inflate the complete-chair count", () => {
+  const audit = calculate({
+    detections: [detection("chair"), detection("chair leg"), detection("backrest")],
+    analysed: true
+  });
+  assert.equal(audit.classCounts.chair, 1);
+  assert.equal(audit.rows.find((row) => row.id === "chairs").detected, 1);
+});

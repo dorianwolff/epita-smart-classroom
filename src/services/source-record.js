@@ -16,6 +16,9 @@ export function createSourceRecord(asset, type, sourceVersion, options = {}) {
     type,
     width,
     height,
+    originalWidth: Number(asset?.sourceOriginalWidth ?? width),
+    originalHeight: Number(asset?.sourceOriginalHeight ?? height),
+    downscaled: Boolean(asset?.wasDownscaled),
     createdAt: (options.now ?? (() => new Date().toISOString()))(),
     status: "ready"
   });
@@ -32,6 +35,6 @@ export function releaseSource(record) {
 }
 
 export function getSourceMetadata(record) {
-  const { sourceId, sourceVersion, type, width, height, createdAt, status } = record;
-  return Object.freeze({ sourceId, sourceVersion, type, width, height, createdAt, status });
+  const { sourceId, sourceVersion, type, width, height, originalWidth, originalHeight, downscaled, createdAt, status } = record;
+  return Object.freeze({ sourceId, sourceVersion, type, width, height, originalWidth, originalHeight, downscaled, createdAt, status });
 }

@@ -40,6 +40,19 @@ function renderError(elements, error) {
   elements.error_action.hidden = false;
 }
 
+function renderImageQuality(elements, quality) {
+  elements.quality_panel.hidden = !quality;
+  if (!quality) return;
+  const { metrics } = quality;
+  elements.quality_summary.textContent = `Qualité de l’image : ${quality.status}`;
+  elements.quality_metrics.textContent = `${metrics.width} × ${metrics.height} px${metrics.downscaled ? ` (réduit depuis ${metrics.originalWidth} × ${metrics.originalHeight})` : ""} · luminosité ${metrics.meanLuminance}/255 · contraste ${metrics.contrast}`;
+  elements.quality_guidance.replaceChildren(...quality.guidance.map((text) => {
+    const item = document.createElement("li");
+    item.textContent = text;
+    return item;
+  }));
+}
+
 export function renderApplicationState(elements, state) {
   const running = state.analysisStatus === ANALYSIS_STATUS.RUNNING;
   const activeCamera = state.cameraStatus === "active";
@@ -61,16 +74,18 @@ export function renderApplicationState(elements, state) {
   elements.stage_upload_label.textContent = state.hasVisualSource ? "Choisir une autre image" : "Importer une image";
   elements.capture_guidance.hidden = state.analysed;
   elements.analyse_upload.disabled = state.modelStatus !== MODEL_STATUS.READY || !state.hasVisualSource || activeCamera || running;
-  elements.print_report.disabled = !state.analysed;
+  elements.print_report.disabled = !state.analysed && !state.audioRecentEvents.length;
   elements.configuration_section.hidden = state.auditMode !== AUDIT_MODE.CONFIGURED;
   elements.configuration_label.hidden = state.configurationSource !== "example";
+  elements.low_threshold_warning.hidden = state.confidenceThreshold >= 0.25;
   document.querySelectorAll('input[name="audit-mode"]').forEach((input) => { input.checked = input.value === state.auditMode; });
   updateConfigurationValues(elements.configuration_grid, state.expectedConfiguration);
   renderAnalysisStatus(elements.analysis_status, state);
   renderError(elements, state.error);
+  renderImageQuality(elements, state.imageQuality);
+  renderReport(elements.report_content, state);
   if (!state.audit) return;
   renderResults(elements.detection_results, elements.results_summary, state.audit);
   renderDashboard(elements.dashboard, elements.global_status, state.audit.metrics);
   renderAuditRows(elements.audit_rows, state.audit.rows);
-  renderReport(elements.report_content, state);
 }

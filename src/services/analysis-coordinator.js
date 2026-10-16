@@ -31,7 +31,8 @@ export function createAnalysisCoordinator({ store, modelService, onComplete, onE
       sourceId: job.source.sourceId,
       sourceVersion: job.source.sourceVersion,
       detectorId: job.detectorId,
-      threshold: job.threshold
+      threshold: job.threshold,
+      preprocessingId: job.preprocessingId
     });
   }
 
@@ -42,6 +43,7 @@ export function createAnalysisCoordinator({ store, modelService, onComplete, onE
       source,
       detectorId: modelService.getDetectorId?.() ?? DEFAULTS.model.id,
       threshold: store.getState().confidenceThreshold,
+      preprocessingId: DEFAULTS.preprocessing.id,
       stale: false,
       promise: null
     };
@@ -68,7 +70,9 @@ export function createAnalysisCoordinator({ store, modelService, onComplete, onE
 
     job.promise = modelService.detect(job.source.asset, {
       threshold: job.threshold,
-      sourceId: job.source.sourceId
+      sourceId: job.source.sourceId,
+      sourceVersion: job.source.sourceVersion,
+      requestId: job.requestId
     })
       .then((detections) => {
         const model = modelService.getMetadata?.() ?? { id: DEFAULTS.model.id, label: DEFAULTS.model.label, backend: "unknown" };
@@ -84,7 +88,9 @@ export function createAnalysisCoordinator({ store, modelService, onComplete, onE
           inferenceMilliseconds: Math.round(performance.now() - startedAt),
           model: model.label,
           modelId: model.id,
-          runtimeBackend: model.backend
+          runtimeBackend: model.backend,
+          preprocessingId: job.preprocessingId,
+          preprocessingLabel: DEFAULTS.preprocessing.label
         };
         if (!job.stale && store.completeAnalysis(summary, detections, metadata)) {
           onComplete({ source: job.source, detections, requestId: job.requestId });

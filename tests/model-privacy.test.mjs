@@ -22,30 +22,13 @@ test("removes person predictions before returning detections", async () => {
   const service = createModelService();
   await service.load();
   const detections = await service.detect({}, 0.6);
-  assert.deepEqual(detections, [
-    {
-      id: "legacy-source:coco-ssd-mobilenet-v2:1",
-      sourceId: "legacy-source",
-      modelId: "coco-ssd-mobilenet-v2",
-      rawLabel: "chair",
-      categoryId: "chairs",
-      displayLabel: "Chaises",
-      score: 0.91,
-      bbox: { x: 5, y: 6, width: 7, height: 8 },
-      experimental: false
-    },
-    {
-      id: "legacy-source:coco-ssd-mobilenet-v2:2",
-      sourceId: "legacy-source",
-      modelId: "coco-ssd-mobilenet-v2",
-      rawLabel: "book",
-      categoryId: null,
-      displayLabel: "livre",
-      score: 0.82,
-      bbox: { x: 3, y: 4, width: 5, height: 6 },
-      experimental: false
-    }
+  assert.equal(detections.length, 2);
+  assert.deepEqual(detections.map(({ rawLabel, score, box }) => ({ rawLabel, score, box })), [
+    { rawLabel: "chair", score: 0.91, box: { x: 5, y: 6, width: 7, height: 8 } },
+    { rawLabel: "book", score: 0.82, box: { x: 3, y: 4, width: 5, height: 6 } }
   ]);
+  assert.ok(detections.every((item) => item.detectorId === "coco-ssd-mobilenet-v2"));
+  assert.ok(detections.every((item) => item.mask === null && item.orientedBox === null && item.polygon === null));
   assert.equal(detections.some((item) => item.rawLabel === "person"), false);
   assert.equal(detectionArguments[1], 100);
   assert.equal(detectionArguments[2], 0.6);
@@ -85,7 +68,7 @@ test("all defensive person labels are removed at the detector boundary", async (
   const detector = {
     load: async () => {},
     detect: async () => [
-      ...privateLabels.map((rawLabel, index) => ({ rawLabel, id: String(index) })),
+      ...privateLabels.map((rawLabel, index) => ({ rawLabel, id: String(index), mask: { width: 1, height: 1, data: [1] } })),
       { rawLabel: "chair", id: "safe" }
     ],
     dispose() {},

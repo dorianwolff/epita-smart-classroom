@@ -1,8 +1,12 @@
 export const DEFAULTS = Object.freeze({
-  confidenceThreshold: 0.4,
-  minimumConfidenceThreshold: 0.25,
+  confidenceThreshold: 0.3,
+  minimumConfidenceThreshold: 0.1,
   maximumConfidenceThreshold: 0.85,
   confidenceStep: 0.05,
+  soundConfidenceThreshold: 0.3,
+  minimumSoundConfidenceThreshold: 0.1,
+  maximumSoundConfidenceThreshold: 0.85,
+  soundWindowSamples: 16384,
   thresholdDebounceMilliseconds: 350,
   maximumDetectionBoxes: 100,
   maximumSourceDimension: 1600,
@@ -13,7 +17,16 @@ export const DEFAULTS = Object.freeze({
     label: "COCO-SSD · MobileNet v2"
   }),
   camera: Object.freeze({ idealWidth: 1920, idealHeight: 1080 }),
-  storageKeys: Object.freeze({ preferences: "sallescope.preferences.v2" }),
+  preprocessing: Object.freeze({ id: "original", label: "Image originale, sans correction automatique" }),
+  audio: Object.freeze({
+    id: "yamnet-float32-v1",
+    label: "YAMNet float32 v1",
+    packageVersion: "1.1.0",
+    packageUrl: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-audio@1.1.0/+esm",
+    wasmUrl: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-audio@1.1.0/wasm",
+    modelUrl: "https://storage.googleapis.com/mediapipe-models/audio_classifier/yamnet/float32/1/yamnet.tflite"
+  }),
+  storageKeys: Object.freeze({ preferences: "sallescope.preferences.v3", legacyPreferences: "sallescope.preferences.v2" }),
   acceptedImageTypes: Object.freeze(["image/jpeg", "image/png", "image/webp"])
 });
 

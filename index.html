@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="description" content="SalleScope analyse localement les équipements visibles d'une salle de cours.">
+    <meta name="description" content="SalleScope analyse localement les équipements visibles et les événements sonores d'une salle de cours.">
     <meta name="theme-color" content="#0b1f3a">
     <title>SalleScope — EPITA Smart Classroom</title>
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
@@ -29,7 +29,7 @@
         </a>
         <div class="header-status">
           <span id="model-status" class="status-pill status-loading" aria-live="polite">Chargement du modèle local…</span>
-          <span class="privacy-mini">Analyse locale · aucune image envoyée</span>
+          <span class="privacy-mini">Image et son traités localement</span>
         </div>
       </div>
     </header>
@@ -37,9 +37,9 @@
     <main id="top">
       <section class="hero shell" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">Audit visuel · local · confidentiel</p>
+          <p class="eyebrow">Audit multimodal · local · confidentiel</p>
           <h1 id="hero-title">Votre salle est-elle prête&nbsp;?</h1>
-          <p class="hero-description">Photographiez une salle ou importez une image. SalleScope compte les équipements visibles et signale les écarts qui nécessitent un contrôle.</p>
+          <p class="hero-description">Analysez une image ou écoutez brièvement l’ambiance. SalleScope repère localement les équipements visibles et des catégories sonores, sans identifier les personnes.</p>
           <div class="hero-actions">
             <a class="button button-primary" href="#audit-workspace">Démarrer un audit</a>
             <button class="button button-secondary" id="hero-upload" type="button">Utiliser une image de test</button>
@@ -48,8 +48,8 @@
         <aside class="privacy-card" aria-label="Engagement de confidentialité">
           <span class="privacy-icon" aria-hidden="true">✓</span>
           <div>
-            <strong>Vos images restent sur cet appareil</strong>
-            <p>L’analyse est réalisée directement dans votre navigateur. Les images ne sont ni envoyées ni enregistrées. Les personnes ne sont ni affichées ni comptées.</p>
+            <strong>Vos données restent sur cet appareil</strong>
+            <p>Images et échantillons sonores sont traités dans votre navigateur, sans enregistrement. Aucune transcription ni identification vocale n’est réalisée.</p>
           </div>
         </aside>
       </section>
@@ -69,6 +69,12 @@
           <p>Cadrez autant d’équipements que possible, sans chercher à identifier les personnes.</p>
         </div>
 
+        <div class="workflow-switch" role="tablist" aria-label="Mode d’analyse">
+          <button id="workflow-visual" class="workflow-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="visual-workflow">Analyse visuelle</button>
+          <button id="workflow-audio" class="workflow-tab" type="button" role="tab" aria-selected="false" aria-controls="sound-workflow">Analyse sonore</button>
+        </div>
+
+        <div id="visual-workflow" role="tabpanel" aria-labelledby="workflow-visual">
         <fieldset id="audit-mode" class="mode-selector">
           <legend>Type d’analyse</legend>
           <label><input type="radio" name="audit-mode" value="free" checked><span><strong>Détection libre</strong><small>Compter les objets visibles sans référence théorique.</small></span></label>
@@ -105,6 +111,11 @@
               <small id="upload-help" class="stage-file-help">JPEG, PNG ou WebP · 15 Mo maximum</small>
             </div>
             <p id="capture-guidance" class="capture-guidance">Pour de meilleurs résultats, cadrez les équipements de près, évitez le contre-jour et prenez une seconde photo si des objets sont masqués.</p>
+            <aside id="quality-panel" class="quality-panel" aria-live="polite" hidden>
+              <strong id="quality-summary"></strong>
+              <p id="quality-metrics"></p>
+              <ul id="quality-guidance"></ul>
+            </aside>
             <p id="analysis-status" class="stage-status" aria-live="polite">Initialisation de l’application.</p>
             <p id="visual-caption" class="visual-caption">Le cadrage influence les résultats. Les objets masqués peuvent ne pas être reconnus.</p>
           </div>
@@ -118,9 +129,10 @@
             <details class="control-section advanced-settings">
               <summary>Réglages avancés</summary>
               <div class="advanced-settings-body">
-                <div class="range-heading"><label for="confidence">Seuil de confiance</label><output id="confidence-value" for="confidence">60 %</output></div>
-                <input id="confidence" type="range" min="25" max="85" step="5" value="40">
+                <div class="range-heading"><label for="confidence">Seuil de confiance</label><output id="confidence-value" for="confidence">30 %</output></div>
+                <input id="confidence" type="range" min="10" max="85" step="5" value="30">
                 <p class="field-help">Un seuil plus bas affiche davantage de détections, mais peut augmenter les faux positifs.</p>
+                <p id="low-threshold-warning" class="threshold-warning" hidden>Seuil faible : contrôlez attentivement les faux positifs.</p>
               </div>
             </details>
 
@@ -135,6 +147,33 @@
             </div>
           </div>
         </div>
+        </div>
+
+        <section id="sound-workflow" class="sound-panel" role="tabpanel" aria-labelledby="workflow-audio" hidden>
+          <div class="sound-intro">
+            <div><p class="eyebrow">Écoute volontaire</p><h3>Événements sonores de la salle</h3></div>
+            <p>YAMNet classe de courtes fenêtres audio dans un worker local. Le son brut est aussitôt remplacé par des catégories : aucune conservation, transcription ou identification de voix.</p>
+          </div>
+          <div class="sound-grid">
+            <div class="sound-live">
+              <span class="sound-pulse" aria-hidden="true"></span>
+              <strong id="audio-current" aria-live="polite">Aucun événement stable au-dessus du seuil.</strong>
+              <p id="audio-status" aria-live="polite">Microphone arrêté. Aucun son n’est analysé.</p>
+              <div class="sound-actions">
+                <button id="start-audio" class="button button-primary" type="button">Démarrer l’écoute</button>
+                <button id="stop-audio" class="button button-secondary" type="button" disabled>Arrêter</button>
+              </div>
+              <p id="audio-error" class="audio-error" role="alert" hidden></p>
+            </div>
+            <div class="sound-settings">
+              <div class="range-heading"><label for="sound-confidence">Seuil sonore</label><output id="sound-confidence-value" for="sound-confidence">30 %</output></div>
+              <input id="sound-confidence" type="range" min="10" max="85" step="5" value="30">
+              <p class="field-help">Deux fenêtres consécutives sont requises avant d’afficher un événement.</p>
+              <h3>Événements récents</h3>
+              <ul id="audio-recent" class="audio-recent"><li>Aucun événement confirmé.</li></ul>
+            </div>
+          </div>
+        </section>
       </section>
 
       <section id="results-section" class="section shell" aria-labelledby="results-title">
@@ -198,7 +237,7 @@
     </main>
 
     <footer class="site-footer">
-      <div class="shell"><p><strong>SalleScope</strong> · EPITA Smart Classroom</p><p>Détection locale avec TensorFlow.js et COCO-SSD.</p></div>
+      <div class="shell"><p><strong>SalleScope</strong> · EPITA Smart Classroom</p><p>COCO-SSD et YAMNet, exécutés localement.</p></div>
     </footer>
   </body>
 </html>

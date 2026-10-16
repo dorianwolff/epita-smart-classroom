@@ -1,6 +1,7 @@
 @media (max-width: 900px) {
   .hero { min-height: auto; grid-template-columns: 1fr; gap: var(--space-5); }
   .analysis-grid { grid-template-columns: 1fr; }
+  .sound-grid { grid-template-columns: 1fr; }
   .visual-stage { aspect-ratio: 4 / 3; }
   .configuration-grid, .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
   .privacy-mini { display: none; }
@@ -23,6 +24,8 @@
   .workflow li { min-width: 0; min-height: 64px; display: grid; place-content: center; gap: 0.2rem; padding: 0.35rem 0.15rem; font-size: 0.7rem; line-height: 1.1; text-align: center; }
   .workflow li span { width: 27px; height: 27px; margin-inline: auto; }
   .section-heading { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+  .sound-intro { display: grid; gap: var(--space-3); }
+  .sound-live, .sound-settings { padding: var(--space-4); }
   .visual-stage { aspect-ratio: 3 / 4; min-height: 0; }
   .visual-panel { padding: var(--space-2); }
   .stage-controls .button, .stage-controls .file-button { width: 100%; flex-basis: 100%; }

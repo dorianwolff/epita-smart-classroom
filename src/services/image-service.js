@@ -42,6 +42,9 @@ export async function createImageSource(file) {
     const canvas = document.createElement("canvas");
     canvas.width = fitted.width;
     canvas.height = fitted.height;
+    canvas.sourceOriginalWidth = intrinsic.width;
+    canvas.sourceOriginalHeight = intrinsic.height;
+    canvas.wasDownscaled = fitted.width !== intrinsic.width || fitted.height !== intrinsic.height;
     canvas.getContext("2d", { alpha: false }).drawImage(image, 0, 0, canvas.width, canvas.height);
     return canvas;
   } finally {

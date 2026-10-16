@@ -3,6 +3,7 @@ import { DEFAULTS, INPUT_MODE, MODEL_STATUS } from "../config/defaults.js";
 import { calculateAudit } from "../domain/audit-engine.js";
 import { createAnalysisCoordinator, createThresholdReanalysis } from "../services/analysis-coordinator.js";
 import { createImageSource, takeSelectedFile } from "../services/image-service.js";
+import { assessImageQuality } from "../quality/image-quality-assessor.js";
 import { printReport } from "../services/report-service.js";
 import { getElement } from "../utils/dom.js";
 import { AppError, getErrorContent, safeLog } from "../utils/errors.js";
@@ -11,10 +12,11 @@ import { renderConfiguration } from "./configuration-view.js";
 import { renderApplicationState } from "./application-view.js";
 
 export class UiController {
-  constructor({ store, modelService, cameraService }) {
+  constructor({ store, modelService, cameraService, audioController }) {
     this.store = store;
     this.modelService = modelService;
     this.cameraService = cameraService;
+    this.audioController = audioController;
     this.elements = this.getElements();
     this.sourceIntent = 0;
     this.analysis = createAnalysisCoordinator({
@@ -36,6 +38,7 @@ export class UiController {
       "error-action", "analysis-status", "capture-guidance", "configuration-section", "configuration-label", "configuration-grid",
       "load-example", "reset-configuration", "detection-results", "results-summary", "dashboard",
       "global-status", "audit-rows", "report-content", "print-report"];
+    ids.push("quality-panel", "quality-summary", "quality-metrics", "quality-guidance", "low-threshold-warning");
     return Object.fromEntries(ids.map((id) => [id.replaceAll("-", "_"), getElement(`#${id}`)]));
   }
 
@@ -55,7 +58,10 @@ export class UiController {
     this.store.subscribe((nextState) => renderApplicationState(this.elements, nextState));
     renderApplicationState(this.elements, this.store.getState());
     void this.loadModel();
-    window.addEventListener("beforeunload", () => this.cameraService.stop(this.elements.camera_preview));
+    window.addEventListener("beforeunload", () => {
+      this.cameraService.stop(this.elements.camera_preview);
+      this.audioController.stop();
+    });
   }
 
   bindEvents() {
@@ -107,6 +113,7 @@ export class UiController {
 
   async startCamera() {
     this.thresholdReanalysis.cancel();
+    this.audioController.stop();
     try {
       if (this.cameraService.isActive()) await this.cameraService.resume(this.elements.camera_preview);
       else await this.cameraService.start(this.elements.camera_preview);
@@ -145,7 +152,12 @@ export class UiController {
     renderCanvas(this.elements.detection_canvas, source);
     clearCanvas(this.elements.detection_overlay);
     this.showCanvas();
-    this.analysis.setSource(source, inputMode);
+    const record = this.analysis.setSource(source, inputMode);
+    try {
+      this.store.setImageQuality(assessImageQuality(record.asset, record));
+    } catch (error) {
+      safeLog("image-quality", error);
+    }
     this.recalculateAudit();
   }
 
@@ -205,6 +217,7 @@ export class UiController {
     this.thresholdReanalysis.cancel();
     this.cameraService.stop(this.elements.camera_preview);
     this.analysis.reset();
+    this.audioController.stop({ clear: true });
     this.elements.image_upload.value = "";
     clearCanvas(this.elements.detection_canvas);
     clearCanvas(this.elements.detection_overlay);
