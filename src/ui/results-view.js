@@ -26,7 +26,8 @@ export function renderResults(container, summary, audit) {
   }
 
   container.className = "";
-  summary.textContent = `${audit.metrics.totalSafeObjects} objet(s) reconnu(s), hors personnes.`;
+  const models = audit.modelIds?.length ? audit.modelIds.join(", ") : "modèle local";
+  summary.textContent = `${audit.metrics.totalSafeObjects} objet(s) reconnu(s), hors personnes. Modèle : ${models}.`;
   const mapped = Object.entries(audit.classCounts)
     .filter(([className]) => CATEGORY_BY_CLASS.has(className))
     .map(([className, count]) => ({ label: CATEGORY_BY_CLASS.get(className).label, count }));

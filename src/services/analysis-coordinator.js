@@ -26,13 +26,13 @@ export function createAnalysisCoordinator({ store, modelService, onComplete, onE
   let sourceVersion = 0;
 
   function jobSummary(job) {
-    return {
+    return Object.freeze({
       requestId: job.requestId,
       sourceId: job.source.sourceId,
       sourceVersion: job.source.sourceVersion,
       detectorId: job.detectorId,
       threshold: job.threshold
-    };
+    });
   }
 
   function createJob(source) {
@@ -86,12 +86,12 @@ export function createAnalysisCoordinator({ store, modelService, onComplete, onE
           modelId: model.id,
           runtimeBackend: model.backend
         };
-        if (store.completeAnalysis(summary, detections, metadata)) {
+        if (!job.stale && store.completeAnalysis(summary, detections, metadata)) {
           onComplete({ source: job.source, detections, requestId: job.requestId });
         } else store.noteStaleResult(summary);
       })
       .catch((error) => {
-        if (store.failAnalysis(summary)) onError(error);
+        if (!job.stale && store.failAnalysis(summary)) onError(error);
         else store.noteStaleResult(summary);
       })
       .finally(() => {

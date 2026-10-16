@@ -60,6 +60,7 @@ export function calculateAudit({ detections, categories, expectedConfiguration, 
   return {
     analysed,
     mode: auditMode,
+    modelIds: [...new Set(detections.map(({ modelId }) => modelId).filter(Boolean))],
     rows,
     classCounts,
     otherObjects: buildOtherObjects(classCounts),

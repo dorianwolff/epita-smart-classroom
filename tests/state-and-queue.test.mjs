@@ -61,6 +61,8 @@ test("a selected source receives immutable identity and request metadata", () =>
   });
   assert.equal(typeof store.getState().currentAnalysis.requestId, "number");
   assert.ok(Object.isFrozen(source));
+  assert.ok(Object.isFrozen(store.getState().currentSource));
+  assert.ok(Object.isFrozen(store.getState().currentAnalysis));
 });
 
 test("EPITA example is explicit and the default mode is free", () => {

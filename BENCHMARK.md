@@ -20,10 +20,10 @@ SalleScope sélectionne ainsi le détecteur local testé le plus précis qui res
 | Détecteur | Révision / version | Backend | Poids approximatif | Chargement mesuré | Inférence mesurée | Précision / rappel / F1 | Décision |
 |---|---|---|---:|---:|---:|---|---|
 | COCO-SSD `mobilenet_v2` | `@tensorflow-models/coco-ssd@2.2.3`, TFJS `4.22.0` | TensorFlow.js, backend navigateur consigné dans le rapport | 67 771 262 octets de manifeste + poids (≈ 67,8 Mo décimaux) | 5,8 s sur profil Chrome neuf ; 6,4 s lors de la recette précédente | moyenne 1 626 ms sur 4 fixtures temporaires | Non calculables sans annotations conservées | Livré, détecteur principal unique |
-| `Xenova/detr-resnet-50`, q8 | candidat `8be7ab59ff663484ee9ba2e8d8f267330d5ad03e` | WebGPU si validé, sinon WASM | `model_quantized.onnx` : 43,1 Mo | Non mesuré | Non mesuré | Non mesurables | Non livré : corpus absent |
-| `Xenova/owlvit-base-patch32`, q8 | candidat `b75f4e5` | WebGPU si validé, sinon WASM | modèle quantifié : 155 Mo, plus ≈ 3,6 Mo de tokenizer/configuration | Non mesuré | Non mesuré | Non mesurables | Mode étendu rejeté pour cette livraison |
+| [`Xenova/detr-resnet-50`](https://huggingface.co/Xenova/detr-resnet-50/tree/8be7ab59ff663484ee9ba2e8d8f267330d5ad03e), q8 | candidat `8be7ab59ff663484ee9ba2e8d8f267330d5ad03e` | WebGPU si validé, sinon WASM | `model_quantized.onnx` : 43,1 Mo | Non mesuré | Non mesuré | Non mesurables | Non livré : corpus absent |
+| [`Xenova/owlvit-base-patch32`](https://huggingface.co/Xenova/owlvit-base-patch32/tree/b75f4e52949639c3bb0b96546ea4149482f6e7ef), q8 | candidat `b75f4e52949639c3bb0b96546ea4149482f6e7ef` | WebGPU si validé, sinon WASM | modèle quantifié : 155 Mo, plus ≈ 3,6 Mo de tokenizer/configuration | Non mesuré | Non mesuré | Non mesurables | Mode étendu rejeté pour cette livraison |
 
-Les tailles candidates proviennent des dépôts de modèles consultés le 16 octobre 2026. Les modèles sources DETR et OWL-ViT sont sous licence Apache-2.0. Ces références ne sont pas des dépendances de production.
+Les tailles candidates proviennent des dépôts de modèles consultés le 16 octobre 2026. Les modèles sources [DETR](https://huggingface.co/facebook/detr-resnet-50) et [OWL-ViT](https://huggingface.co/google/owlvit-base-patch32) sont sous licence Apache-2.0. Ces références ne sont pas des dépendances de production.
 
 ## Mesures historiques COCO-SSD
 

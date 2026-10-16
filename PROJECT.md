@@ -187,7 +187,7 @@ Le backend effectif de TensorFlow.js est consigné dans chaque rapport. La versi
 
 ## Vérifications du 16/10/2026
 
-- 28 tests Node déterministes réussis après correction.
+- 31 tests Node déterministes réussis après correction.
 - Courses couvertes : A→B, A→B→C, échec obsolète, deux seuils successifs, changement de détecteur, reset pendant inférence.
 - Import couvert : même fichier deux fois et révocation d’URL exactement une fois après copie.
 - Confidentialité couverte pour `person`, `human`, `student`, `teacher`, `face`, `man`, `woman`, `boy`, `girl`.

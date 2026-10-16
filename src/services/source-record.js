@@ -33,5 +33,5 @@ export function releaseSource(record) {
 
 export function getSourceMetadata(record) {
   const { sourceId, sourceVersion, type, width, height, createdAt, status } = record;
-  return { sourceId, sourceVersion, type, width, height, createdAt, status };
+  return Object.freeze({ sourceId, sourceVersion, type, width, height, createdAt, status });
 }

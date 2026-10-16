@@ -1,10 +1,12 @@
 import { CATEGORY_BY_CLASS } from "../config/categories.js";
 import { getCocoLabel } from "../config/coco-labels.js";
+import { DEFAULTS } from "../config/defaults.js";
 import { getIntrinsicSize } from "../services/source-resolution.js";
 import { formatPercent } from "../utils/formatting.js";
 
 function getLabel(detection) {
-  return `${detection.displayLabel ?? getCocoLabel(detection.rawLabel)} · ${formatPercent(detection.score)}`;
+  const modelLabel = detection.modelId === DEFAULTS.model.id ? "COCO-SSD" : detection.modelId;
+  return `${detection.displayLabel ?? getCocoLabel(detection.rawLabel)} · ${formatPercent(detection.score)} · ${modelLabel}`;
 }
 
 function drawDetection(context, detection, canvasWidth) {

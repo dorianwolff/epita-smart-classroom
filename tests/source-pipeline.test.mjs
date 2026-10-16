@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { INPUT_MODE, MODEL_STATUS } from "../src/config/defaults.js";
+import { createAnalysisCoordinator } from "../src/services/analysis-coordinator.js";
 import { createCameraService } from "../src/services/camera-service.js";
 import { fitWithinMaximum } from "../src/services/source-resolution.js";
+import { createStore } from "../src/state/store.js";
 
 test("source resizing preserves aspect ratio and never upscales", () => {
   assert.deepEqual(fitWithinMaximum(1920, 1080, 1600), { width: 1600, height: 900 });
@@ -73,4 +76,60 @@ test("a paused camera stream can be reused, then every track is stopped", async 
   service.stop(video);
   assert.equal(stops, 2);
   assert.equal(video.srcObject, null);
+});
+
+function createSourceHarness() {
+  globalThis.localStorage = { getItem: () => null, setItem: () => {} };
+  const store = createStore();
+  store.setModelStatus(MODEL_STATUS.READY);
+  const modelService = {
+    getDetectorId: () => "fake-detector",
+    getMetadata: () => ({ id: "fake-detector", label: "Fake", backend: "fake" }),
+    detect: async (_source, { sourceId }) => [{
+      id: `${sourceId}:0`, sourceId, modelId: "fake-detector", rawLabel: "chair",
+      categoryId: "chairs", displayLabel: "Chaises", score: 0.9,
+      bbox: { x: 0, y: 0, width: 1, height: 1 }, experimental: false
+    }]
+  };
+  const coordinator = createAnalysisCoordinator({ store, modelService, onComplete: () => {}, onError: () => {} });
+  return { store, coordinator };
+}
+
+test("camera capture replaced by upload stops tracks and analyses the upload", async () => {
+  let stopped = 0;
+  const stream = { getTracks: () => [{ stop: () => { stopped += 1; } }] };
+  Object.defineProperty(globalThis, "window", { value: { isSecureContext: true }, configurable: true });
+  Object.defineProperty(globalThis, "navigator", {
+    value: { mediaDevices: { getUserMedia: async () => stream } }, configurable: true
+  });
+  Object.defineProperty(globalThis, "document", {
+    value: { createElement: () => ({ width: 0, height: 0, getContext: () => ({ drawImage() {} }) }) },
+    configurable: true
+  });
+  const video = { videoWidth: 640, videoHeight: 480, srcObject: null, play: async () => {} };
+  const camera = createCameraService();
+  const { store, coordinator } = createSourceHarness();
+  await camera.start(video);
+  coordinator.setSource(camera.capture(video), INPUT_MODE.CAMERA);
+  await coordinator.processQueue();
+  camera.stop(video);
+  coordinator.setSource({ width: 320, height: 240 }, INPUT_MODE.UPLOAD);
+  await coordinator.processQueue();
+  assert.equal(stopped, 1);
+  assert.equal(store.getState().currentSource.type, INPUT_MODE.UPLOAD);
+  assert.equal(store.getState().auditMetadata.inputMode, INPUT_MODE.UPLOAD);
+  assert.equal(store.getState().detections[0].sourceId, store.getState().currentSource.sourceId);
+});
+
+test("upload replaced by camera capture clears old results before camera analysis", async () => {
+  const { store, coordinator } = createSourceHarness();
+  coordinator.setSource({ width: 320, height: 240 }, INPUT_MODE.UPLOAD);
+  await coordinator.processQueue();
+  const uploadId = store.getState().currentSource.sourceId;
+  coordinator.setSource({ width: 640, height: 480 }, INPUT_MODE.CAMERA);
+  assert.deepEqual(store.getState().detections, []);
+  assert.equal(store.getState().currentSource.type, INPUT_MODE.CAMERA);
+  await coordinator.processQueue();
+  assert.notEqual(store.getState().currentSource.sourceId, uploadId);
+  assert.equal(store.getState().detections[0].sourceId, store.getState().currentSource.sourceId);
 });

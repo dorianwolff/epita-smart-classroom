@@ -50,3 +50,29 @@ test("fallback object URLs are revoked exactly once after a safe canvas copy", a
     URL.revokeObjectURL = originalRevoke;
   }
 });
+
+test("a corrupt fallback image revokes its object URL and preserves the error", async () => {
+  const originalBitmap = globalThis.createImageBitmap;
+  const originalImage = globalThis.Image;
+  const originalCreate = URL.createObjectURL;
+  const originalRevoke = URL.revokeObjectURL;
+  const revoked = [];
+  globalThis.createImageBitmap = undefined;
+  URL.createObjectURL = () => "blob:corrupt";
+  URL.revokeObjectURL = (url) => revoked.push(url);
+  globalThis.Image = class {
+    set src(_value) { queueMicrotask(() => this.onerror?.(new Error("corrupt"))); }
+  };
+  try {
+    await assert.rejects(
+      createImageSource({ type: "image/jpeg", size: 100 }),
+      (error) => error.code === "IMAGE_LOAD"
+    );
+    assert.deepEqual(revoked, ["blob:corrupt"]);
+  } finally {
+    globalThis.createImageBitmap = originalBitmap;
+    globalThis.Image = originalImage;
+    URL.createObjectURL = originalCreate;
+    URL.revokeObjectURL = originalRevoke;
+  }
+});
